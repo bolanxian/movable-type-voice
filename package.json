@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "fflate": "^0.7.3",
+    "format-bytes": "^1.0.1",
     "ipinyinjs": "^1.0.0",
+    "speedometer": "^1.1.0",
     "vue": "^3.2.37",
     "wav-encoder": "^1.3.0",
     "yauzl": "^2.10.0"

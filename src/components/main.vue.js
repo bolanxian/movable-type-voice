@@ -14,11 +14,18 @@ export default defineComponent({
   created() {
     const vm = this
     const otto = new ArchiveWithEx('./otto')
-    vm.voices = new Map([
-      ['电棍', otto.main],
-      ['电棍(原声大碟)', otto],
-      ['塔菲', new Archive('./taffy')]
-    ])
+    otto.name = '电棍(原声大碟)'
+    otto.main.name = '电棍'
+    const taffy = new Archive('./taffy')
+    taffy.name = '塔菲'
+    const archs = vm.voices = new Map()
+    for (const arch of [
+      otto.main,
+      otto,
+      taffy
+    ]) {
+      archs.set(arch.name, arch)
+    }
   },
   mounted() {
     const el = this.$el
@@ -29,24 +36,27 @@ export default defineComponent({
     async handleSubmit(e) {
       e.preventDefault()
       e.stopPropagation()
-      const vm = this, el = e.target, { elements: els } = el
-      const src = els.namedItem('src'), dest = els.namedItem('dest')
+      const vm = this, { target: el, submitter } = e, { elements: els } = el
+      const dest = els.namedItem('dest')
       try {
         URL.revokeObjectURL(vm.audioSrc)
-        e.submitter.disabled = true
+        submitter.disabled = true
         vm.tip = ''
         vm.audioSrc = null
         dest.value = ''
         const archive = vm.voices.get(els.namedItem('voice').value)
-        const lib = await archive.getVoiceLibrary(48000)
-        const list = Array.from(archive.parse(src.value)).join(' ')
+        const lib = await archive.getVoiceLibrary(48000, {
+          onTip(msg) { vm.tip = `加载 ${msg}` }
+        })
+        vm.tip = ''
+        const list = Array.from(archive.parse(els.namedItem('src').value)).join(' ')
         vm.audioSrc = URL.createObjectURL(await lib.concat(list.split(' ')))
         dest.value = list
       } catch (err) {
-        vm.tip = e.submitter.value + '失败'
+        vm.tip = submitter.value + '失败'
         throw err
       } finally {
-        e.submitter.disabled = false
+        submitter.disabled = false
       }
     }
   },
