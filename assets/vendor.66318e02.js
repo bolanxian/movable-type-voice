@@ -18968,4 +18968,93 @@ var pinyin_dict_withtone = "yī,dīng zhēng,kǎo qiǎo yú,qī,shàng,xià,hǎn
 
 const pinyinUtil = pinyinUtil$1.exports;
 
-export { Buffer$4 as B, EventEmitter$2 as E, Readable$1 as R, Stream as S, Vue as V, process$1 as a, createApp as c, pinyinUtil as p, wav as w, yauzl as y };
+const units = 'bytes KB MB GB TB PB EB ZB YB'.split(' ');
+
+function formatBytes(bytes) {
+  assert(arguments.length === 1, 'Must receive exactly one argument');
+
+  assert(
+    Number.isInteger(bytes) && bytes >= 0,
+    'First argument must be a positive integer'
+  );
+
+  // Special case - singular form
+  if (bytes === 1) {
+    return '1 byte';
+  }
+
+  // Special case - output precision should not exceed input precision
+  if (bytes < 100) {
+    return String(bytes) + ' ' + units[0];
+  }
+
+  // Round before choosing unit
+  const round = Number(bytes.toPrecision(3));
+
+  const magnitude = logFloor(round, 1000);
+
+  // If we don't have a large enough unit, fall back to scientific notation.
+  if (magnitude >= units.length) {
+    return round.toPrecision(3).replace('e+', ' × 10^') + ' ' + units[0];
+  }
+
+  return (
+    (round / Math.pow(1000, magnitude)).toPrecision(3) + ' ' + units[magnitude]
+  );
+}
+
+// Simpler implementations are often off by one due to floating point errors.
+function logFloor(n, base) {
+  const ceil = Math.round(Math.log(n) / Math.log(base));
+  return ceil - (Math.pow(base, ceil) > n ? 1 : 0);
+}
+
+function assert(success, message) {
+  if (!success) {
+    throw Error(message);
+  }
+}
+
+var formatBytes_1 = formatBytes;
+
+var tick = 1;
+var maxTick = 65535;
+var resolution = 4;
+var timer;
+var inc = function () {
+  tick = (tick + 1) & maxTick;
+};
+
+
+var speedometer = function (seconds) {
+  if (!timer) {
+    timer = setInterval(inc, (1000 / resolution) | 0);
+    if (timer.unref) timer.unref();
+  }
+
+  var size = resolution * (seconds || 5);
+  var buffer = [0];
+  var pointer = 1;
+  var last = (tick - 1) & maxTick;
+
+  return function (delta) {
+    var dist = (tick - last) & maxTick;
+    if (dist > size) dist = size;
+    last = tick;
+
+    while (dist--) {
+      if (pointer === size) pointer = 0;
+      buffer[pointer] = buffer[pointer === 0 ? size - 1 : pointer - 1];
+      pointer++;
+    }
+
+    if (delta) buffer[pointer - 1] += delta;
+
+    var top = buffer[pointer - 1];
+    var btm = buffer.length < size ? 0 : buffer[pointer === size ? 0 : pointer];
+
+    return buffer.length < resolution ? top : (top - btm) * resolution / buffer.length
+  }
+};
+
+export { Buffer$4 as B, EventEmitter$2 as E, Readable$1 as R, Stream as S, Vue as V, process$1 as a, createApp as c, formatBytes_1 as f, pinyinUtil as p, speedometer as s, wav as w, yauzl as y };

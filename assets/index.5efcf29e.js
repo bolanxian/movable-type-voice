@@ -1,4 +1,4 @@
-import { R as Readable, B as Buffer, y as yauzl, w as wav, p as pinyinUtil, V as Vue, c as createApp, a as process, E as EventEmitter, S as Stream } from './vendor.b425dab2.js';
+import { R as Readable, B as Buffer, y as yauzl, w as wav, s as speedometer, p as pinyinUtil, f as formatBytes_1, V as Vue, c as createApp, a as process, E as EventEmitter, S as Stream } from './vendor.66318e02.js';
 
 const style = '';
 
@@ -202,12 +202,75 @@ class Library {
   }
 }
 
+class Progress {
+  constructor(onProgress, emitDelay = 200) {
+    this.total = 0;
+    this.loaded = 0;
+    this.speed = 0;
+    this.streamSpeed = speedometer();
+    this.emitDelay = emitDelay;
+    this.eventStart = 0;
+    this.percent = '0';
+    this.onProgress = onProgress;
+  }
+  flow(chunk) {
+    const chunkLength = chunk.length;
+    const loaded = this.loaded += chunkLength;
+    this.speed = this.streamSpeed(chunkLength);
+    this.percent = (loaded / this.total * 100).toFixed(2);
+    const now = Date.now();
+    if (this.eventStart === 0) { this.eventStart = now; }
+    if (now - this.eventStart > this.emitDelay || this.loaded >= this.total) {
+      this.eventStart = now;
+      this.onProgress(this);
+    }
+  }
+}
+const noop = () => null;
+class ProgressSource {
+  constructor(response, {
+    emitDelay = 200,
+    onProgress = noop,
+    onComplete = noop,
+    onError = noop,
+  } = {}) {
+    const { body, headers } = response;
+    this.$progress = new Progress(onProgress, emitDelay);
+    this.$progress.total = +headers.get('content-length');
+    this.$progress.onProgress(this.$progress);
+    this.$body = body;
+    //this.$onProgress = onProgress
+    this.$onComplete = onComplete;
+    this.$onError = onError;
+  }
+  start() {
+    this.$reader = this.$body.getReader();
+  }
+  async pull(controller) {
+    const { done, value } = await this.$reader.read();
+    done ? controller.close() : controller.enqueue(value);
+    try {
+      if (done) { this.$onComplete(); return }
+      this.$progress.flow(value);
+    } catch (error) {
+      this.$onError(error);
+    }
+  }
+  static create(response, init) {
+    const stream = new ReadableStream(new ProgressSource(response, init));
+    return new Response(stream, response)
+  }
+}
+
 const baseParserList = [
   [new RegExp(Object.keys(dictionary).join('|')), str => dictionary[str]],
   [/[\s、，。：；——]+/, () => 'pau'],
   [/[\u4E00-\u9FEF]/, str => pinyinUtil.getPinyin(str, ' ', !1, !1)]
 ];
 const { get } = Reflect, regProto = RegExp.prototype, { matchAll } = String.prototype;
+const formatProgress = ({ loaded, total, percent, speed }) => {
+  return `[${percent}%][${formatBytes_1(Math.trunc(speed))}/s][${formatBytes_1(loaded)}/${formatBytes_1(total)}]`
+};
 class Archive {
   static createParser(list) {
     const map = new Map(list);
@@ -227,60 +290,68 @@ class Archive {
     this.url = `${name}.zip`;
     this.blobPromise = null;
   }
-  async createBlob() {
-    const response = await fetch(this.url);
+  async createBlob(init = {}) {
+    let response = await fetch(this.url);
+    if (init.onProgress != null) {
+      response = ProgressSource.create(response, init);
+    }
     return await response.blob()
   }
-  getBlob() {
+  getBlob(init) {
     if (this.blobPromise == null) {
-      this.blobPromise = this.createBlob();
+      this.blobPromise = this.createBlob(init);
     }
     return this.blobPromise
   }
-  async createEntriesOld() {
-    const blob = await this.getBlob();
+  async createEntriesOld(init) {
+    const blob = await this.getBlob(init);
     const buffer = Buffer.from(await blob.arrayBuffer());
     const entries = await UnzipEntry.fromBuffer(buffer);
     return entries
   }
-  async createEntries() {
-    const blob = await this.getBlob();
+  async createEntries(init) {
+    const blob = await this.getBlob(init);
     const entries = await UnzipEntry.fromBlob(blob);
     return entries
   }
-  getEntries() {
+  getEntries(init) {
     if (this.entriesPromise == null) {
-      this.entriesPromise = this.createEntries();
+      this.entriesPromise = this.createEntries(init);
     }
     return this.entriesPromise
   }
-  async createVoiceLibrary(sampleRate) {
-    const entries = await this.getEntries();
-    const lib = new Library(sampleRate);
-    lib.injectUnzipEntries(entries);
+  async createVoiceLibrary(sampleRate, init = {}) {
+    const lib = new Library(sampleRate), { name } = this;
+    lib.injectUnzipEntries(await this.getEntries(init.onTip != null ? {
+      onProgress(progress) { init.onTip(`${name}${formatProgress(progress)}`); }
+    } : null));
     this.parse = Archive.createParser(baseParserList);
     return lib
   }
-  async getVoiceLibrary(sampleRate) {
+  async getVoiceLibrary(sampleRate, init) {
     if (this.libraryPromise != null) try {
       const lib = await this.libraryPromise;
       if (lib != null && lib.audioContext.sampleRate === sampleRate) {
         return lib
       }
     } catch (e) { }
-    this.libraryPromise = this.createVoiceLibrary(sampleRate);
+    this.libraryPromise = this.createVoiceLibrary(sampleRate, init);
     return this.libraryPromise
   }
 }
 class ArchiveWithEx extends Archive {
   constructor(name) {
     super(`${name}.ex`);
+    this.name = name;
     this.main = new Archive(name);
   }
-  async createVoiceLibrary(sampleRate) {
+  async createVoiceLibrary(sampleRate, init = {}) {
     const lib = new Library(sampleRate);
-    lib.injectUnzipEntries(await this.main.getEntries());
-    lib.injectUnzipEntries(await this.getEntries());
+    for (const arch of [this.main, this]) {
+      lib.injectUnzipEntries(await arch.getEntries(init.onTip != null ? {
+        onProgress(progress) { init.onTip(`${arch.name}${formatProgress(progress)}`); }
+      } : null));
+    }
     const table = JSON.parse(await lib.entryMap.get('table').text());
     lib.entryMap.delete('table');
     this.parse = Archive.createParser([
@@ -304,11 +375,18 @@ const Main = defineComponent({
   created() {
     const vm = this;
     const otto = new ArchiveWithEx('./otto');
-    vm.voices = new Map([
-      ['电棍', otto.main],
-      ['电棍(原声大碟)', otto],
-      ['塔菲', new Archive('./taffy')]
-    ]);
+    otto.name = '电棍(原声大碟)';
+    otto.main.name = '电棍';
+    const taffy = new Archive('./taffy');
+    taffy.name = '塔菲';
+    const archs = vm.voices = new Map();
+    for (const arch of [
+      otto.main,
+      otto,
+      taffy
+    ]) {
+      archs.set(arch.name, arch);
+    }
   },
   mounted() {
     const el = this.$el;
@@ -319,24 +397,27 @@ const Main = defineComponent({
     async handleSubmit(e) {
       e.preventDefault();
       e.stopPropagation();
-      const vm = this, el = e.target, { elements: els } = el;
-      const src = els.namedItem('src'), dest = els.namedItem('dest');
+      const vm = this, { target: el, submitter } = e, { elements: els } = el;
+      const dest = els.namedItem('dest');
       try {
         URL.revokeObjectURL(vm.audioSrc);
-        e.submitter.disabled = true;
+        submitter.disabled = true;
         vm.tip = '';
         vm.audioSrc = null;
         dest.value = '';
         const archive = vm.voices.get(els.namedItem('voice').value);
-        const lib = await archive.getVoiceLibrary(48000);
-        const list = Array.from(archive.parse(src.value)).join(' ');
+        const lib = await archive.getVoiceLibrary(48000, {
+          onTip(msg) { vm.tip = `加载 ${msg}`; }
+        });
+        vm.tip = '';
+        const list = Array.from(archive.parse(els.namedItem('src').value)).join(' ');
         vm.audioSrc = URL.createObjectURL(await lib.concat(list.split(' ')));
         dest.value = list;
       } catch (err) {
-        vm.tip = e.submitter.value + '失败';
+        vm.tip = submitter.value + '失败';
         throw err
       } finally {
-        e.submitter.disabled = false;
+        submitter.disabled = false;
       }
     }
   },
