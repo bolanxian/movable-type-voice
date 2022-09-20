@@ -1,5 +1,4 @@
 
-import formatBytes from 'format-bytes'
 import pinyinUtil from 'ipinyinjs/pinyinUtil'
 import { UnzipEntry } from '../unzip/unzip-entry'
 import dictionary from './dictionary.json'
@@ -8,13 +7,10 @@ import { ProgressSource } from './progress'
 
 const baseParserList = [
   [new RegExp(Object.keys(dictionary).join('|')), str => dictionary[str]],
-  [/[\s、，。：；——]+/, () => 'pau'],
+  [/[\s,、，。：；——]+/, () => 'pau'],
   [/[\u4E00-\u9FEF]/, str => pinyinUtil.getPinyin(str, ' ', !1, !1)]
 ]
 const { get } = Reflect, regProto = RegExp.prototype, { matchAll } = String.prototype
-const formatProgress = ({ loaded, total, percent, speed }) => {
-  return `[${percent}%][${formatBytes(Math.trunc(speed))}/s][${formatBytes(loaded)}/${formatBytes(total)}]`
-}
 export class Archive {
   static createParser(list) {
     const map = new Map(list)
@@ -36,10 +32,17 @@ export class Archive {
   }
   async createBlob(init = {}) {
     let response = await fetch(this.url)
-    if (init.onProgress != null) {
-      response = ProgressSource.create(response, init)
+    const { status } = response
+    if (status !== 200) {
+      response.body?.cancel()
+      throw new TypeError(`Request failed with status code ${status}`)
     }
-    return await response.blob()
+    if (init.onFetchProgress != null) {
+      response = ProgressSource.create(response, init.onFetchProgress)
+    }
+    const blob = await response.blob()
+    init.onFetchEnd?.()
+    return blob
   }
   getBlob(init) {
     if (this.blobPromise == null) {
@@ -50,13 +53,13 @@ export class Archive {
   async createEntriesOld(init) {
     const blob = await this.getBlob(init)
     const buffer = Buffer.from(await blob.arrayBuffer())
-    const entries = await UnzipEntry.fromBuffer(buffer)
-    return entries
+    return await UnzipEntry.fromBuffer(buffer)
   }
   async createEntries(init) {
+    let result// = await UnzipEntry.fromUrl(this.url)
+    if (result != null) { return result }
     const blob = await this.getBlob(init)
-    const entries = await UnzipEntry.fromBlob(blob)
-    return entries
+    return await UnzipEntry.fromBlob(blob)
   }
   getEntries(init) {
     if (this.entriesPromise == null) {
@@ -66,8 +69,9 @@ export class Archive {
   }
   async createVoiceLibrary(sampleRate, init = {}) {
     const lib = new Library(sampleRate), { name } = this
-    lib.injectUnzipEntries(await this.getEntries(init.onTip != null ? {
-      onProgress(progress) { init.onTip(`${name}${formatProgress(progress)}`) }
+    lib.injectUnzipEntries(await this.getEntries(init.onFetchProgress != null ? {
+      onFetchProgress(progress) { init.onFetchProgress(name, progress) },
+      onFetchEnd() { init.onFetchEnd?.(name) }
     } : null))
     this.parse = Archive.createParser(baseParserList)
     return lib
@@ -86,14 +90,18 @@ export class Archive {
 export class ArchiveWithEx extends Archive {
   constructor(name) {
     super(`${name}.ex`)
-    this.name = name
     this.main = new Archive(name)
+  }
+  set name(name) { }
+  get name() {
+    return `${this.main.name}(原声大碟)`
   }
   async createVoiceLibrary(sampleRate, init = {}) {
     const lib = new Library(sampleRate)
     for (const arch of [this.main, this]) {
-      lib.injectUnzipEntries(await arch.getEntries(init.onTip != null ? {
-        onProgress(progress) { init.onTip(`${arch.name}${formatProgress(progress)}`) }
+      lib.injectUnzipEntries(await arch.getEntries(init.onFetchProgress != null ? {
+        onFetchProgress(progress) { init.onFetchProgress(arch.name, progress) },
+        onFetchEnd() { init.onFetchEnd?.(arch.name) }
       } : null))
     }
     const table = JSON.parse(await lib.entryMap.get('table').text())

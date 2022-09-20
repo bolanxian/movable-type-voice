@@ -1,62 +1,48 @@
 
 import speedometer from 'speedometer'
+const { min } = Math
 
 export class Progress {
-  constructor(onProgress, emitDelay = 200) {
-    this.total = 0
-    this.loaded = 0
-    this.speed = 0
+  constructor(onProgress) {
+    this.loaded = this.total = 0
     this.streamSpeed = speedometer()
-    this.emitDelay = emitDelay
-    this.eventStart = 0
-    this.percent = '0'
     this.onProgress = onProgress
   }
-  flow(chunk) {
-    const chunkLength = chunk.length
-    const loaded = this.loaded += chunkLength
-    this.speed = this.streamSpeed(chunkLength)
-    this.percent = (loaded / this.total * 100).toFixed(2)
-    const now = Date.now()
-    if (this.eventStart === 0) { this.eventStart = now }
-    if (now - this.eventStart > this.emitDelay || this.loaded >= this.total) {
-      this.eventStart = now
-      this.onProgress(this)
-    }
+  get percent() {
+    return min(99.9, this.loaded / this.total * 100).toFixed(1)
+  }
+  get speed() {
+    return this.streamSpeed(0)
+  }
+  push(chunkLength) {
+    this.loaded += chunkLength
+    this.streamSpeed(chunkLength)
+    this.onProgress(this)
   }
 }
-const noop = () => null
 export class ProgressSource {
-  constructor(response, {
-    emitDelay = 200,
-    onProgress = noop,
-    onComplete = noop,
-    onError = noop,
-  } = {}) {
+  constructor(response, onProgress) {
     const { body, headers } = response
-    this.$progress = new Progress(onProgress, emitDelay)
-    this.$progress.total = +headers.get('content-length')
-    this.$progress.onProgress(this.$progress)
     this.$body = body
-    //this.$onProgress = onProgress
-    this.$onComplete = onComplete
-    this.$onError = onError
+    this.$progress = new Progress(onProgress)
+    this.$progress.total = +headers.get('content-length')
+    this.$progress.push(0)
   }
   start() {
     this.$reader = this.$body.getReader()
   }
   async pull(controller) {
     const { done, value } = await this.$reader.read()
-    done ? controller.close() : controller.enqueue(value)
-    try {
-      if (done) { this.$onComplete(); return }
-      this.$progress.flow(value)
-    } catch (error) {
-      this.$onError(error)
-    }
+    if (done) { controller.close(); return }
+    controller.enqueue(value)
+    this.$progress.push(value.byteLength)
   }
-  static create(response, init) {
-    const stream = new ReadableStream(new ProgressSource(response, init))
+  async cancel(reason) {
+    await this.$reader.cancel(reason)
+  }
+  static create(response, onProgress) {
+    const source = new ProgressSource(response, onProgress)
+    const stream = new ReadableStream(source)
     return new Response(stream, response)
   }
 }

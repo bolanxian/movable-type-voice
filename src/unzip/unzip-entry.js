@@ -1,5 +1,6 @@
+
 import yauzl from 'yauzl'
-import { streamToBlob, readableToNode } from './utils'
+import { readableFromNode, readableToNode } from './utils'
 
 export class UnzipEntry {
   constructor(yauzlEntry, yauzlZipFile) {
@@ -7,25 +8,22 @@ export class UnzipEntry {
     this.yauzlZipFile = yauzlZipFile
     this.name = yauzlEntry.fileName
   }
-  openReadStream() {
+  stream() {
     const { yauzlZipFile: zipfile, yauzlEntry: entry } = this
-    return new Promise((ok, reject) => {
+    return readableFromNode(new Promise((ok, reject) => {
       zipfile.openReadStream(entry, (err, readable) => {
         err == null ? ok(readable) : reject(err)
       })
-    })
+    }))
   }
-  async blob() {
-    const readable = await this.openReadStream()
-    return await streamToBlob(readable)
+  blob() {
+    return new Response(this.stream()).blob()
   }
-  async arrayBuffer() {
-    const blob = await this.blob()
-    return await blob.arrayBuffer()
+  arrayBuffer() {
+    return new Response(this.stream()).arrayBuffer()
   }
-  async text() {
-    const blob = await this.blob()
-    return await blob.text()
+  text() {
+    return new Response(this.stream()).text()
   }
   static readEntries(zipfile) {
     return new Promise((ok, rej) => {
@@ -47,19 +45,39 @@ export class UnzipEntry {
       zipfile.readEntry()
     })
   }
-  static async fromBlob(blob) {
+  static async fromRandomAccessReader(createReadable, size) {
     const zipfile = await new Promise((ok, reject) => {
       const reader = new yauzl.RandomAccessReader()
-      reader._readStreamForRange = (start, end) => {
-        return readableToNode(blob.slice(start, end).stream())
-      }
-      yauzl.fromRandomAccessReader(reader, blob.size, {
+      reader._readStreamForRange = createReadable
+      yauzl.fromRandomAccessReader(reader, size, {
         autoClose: false, lazyEntries: true
       }, (err, zipfile) => {
         err == null ? ok(zipfile) : reject(err)
       })
     })
-    const entries = await UnzipEntry.readEntries(zipfile)
-    return entries
+    return await this.readEntries(zipfile)
+  }
+  static fromBlob(blob) {
+    return this.fromRandomAccessReader((start, end) => {
+      return readableToNode(blob.slice(start, end).stream())
+    }, blob.size)
+  }
+  static async fromUrl(url) {
+    const head = await fetch(url, { method: 'HEAD' })
+    const blob = await head.blob()
+    if (blob.size > 0) { return this.fromBlob(blob) }
+    if (head.headers.get('accept-ranges') !== 'bytes') { return null }
+    const createReadable = async (start, end) => {
+      const response = await fetch(url, {
+        headers: { range: `bytes=${start ?? 0}-${end != null ? end - 1 : ''}` }
+      })
+      if (response.status !== 206) {
+        throw new TypeError('Range not satisfiable')
+      }
+      return response.body
+    }
+    return this.fromRandomAccessReader((start, end) => {
+      return readableToNode(createReadable(start, end))
+    }, +head.headers.get('content-length'))
   }
 }
