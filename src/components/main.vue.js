@@ -2,6 +2,7 @@
 import * as Vue from 'vue'
 const { createVNode: h, defineComponent } = Vue
 import formatBytes from 'format-bytes'
+import { UnzipEntry } from '../unzip/unzip-entry'
 import { Archive, ArchiveWithEx } from '../voice/archive'
 
 const formatProgress = ({ loaded, total, percent, speed }) => {
@@ -15,30 +16,74 @@ export default defineComponent({
       audioSrc: null
     }
   },
-  created() {
+  beforeMount() {
     const vm = this
-    const otto = new ArchiveWithEx('./otto')
-    otto.main.name = '电棍'
-    const taffy = new Archive('./taffy')
-    taffy.name = '塔菲'
+    const otto = new ArchiveWithEx('./otto', '电棍')
+    const taffy = new Archive('./taffy', '塔菲')
     const archs = vm.voices = new Map()
-    for (const arch of [
-      otto.main,
-      otto,
-      taffy
-    ]) {
+    for (const arch of [otto.main, otto, taffy]) {
       archs.set(arch.name, arch)
     }
   },
   mounted() {
-    const el = this.$el
-    el.ownerDocument.title = name
-    el.querySelector('[name="voice"]').click()
+    const el = this.$el, doc = el.ownerDocument
+    doc.title = name
+    el.querySelector('[name=voice]').click()
+    doc.addEventListener('dragover', this.handleDragover)
+    doc.addEventListener('drop', this.handleDrop)
+  },
+  beforeUnmount() {
+    const el = this.$el, doc = el.ownerDocument
+    doc.removeEventListener('dragover', this.handleDragover)
+    doc.removeEventListener('drop', this.handleDrop)
   },
   methods: {
+    handleDragover(e) {
+      e.preventDefault(); e.stopPropagation()
+    },
+    handleDrop(e) {
+      const { target } = e
+      if (this.global && !this.$el.contains(target) && e.type !== 'paste') {
+        const tag = target.tagName.toUpperCase()
+        const able = target.getAttribute('contenteditable')
+        if ('INPUT' === tag || 'TEXTAREA' === tag || '' === able || 'true' === able) return
+      }
+      e.preventDefault(); e.stopPropagation()
+      const dT = e.dataTransfer ?? e.clipboardData
+      if (dT == null) return
+      const suffix = '.zip', suffixEx = '.ex.zip'
+      let main, ex
+      for (const file of dT.files) {
+        if (file.name.endsWith(suffixEx)) { ex = file }
+        else if (file.name.endsWith(suffix)) { main = file }
+        //if (file.name.endsWith('.zip')) { this.handleZip(file); return }
+      }
+      const archs = this.voices
+      if (main != null) {
+        const name = main.name.slice(0, -suffix.length)
+        if (ex != null) {
+          if (ex.name.slice(0, -suffixEx.length) != name) { return }
+          const arch = new ArchiveWithEx([main, ex], name)
+          archs.set(arch.main.name, arch.main)
+          archs.set(arch.name, arch)
+        } else {
+          archs.set(name, new Archive(main, name))
+        }
+        this.$forceUpdate()
+      }
+    },
+    async handleZip(file) {
+      const { name } = file, array = []
+      const entries = await UnzipEntry.fromBlob(file)
+      for await (const entry of entries) {
+        array.push(entry)
+        console.log(name, entry.name, entry)
+        await entry.stream().pipeTo(new WritableStream())
+      }
+      console.log(file, array)
+    },
     async handleSubmit(e) {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault(); e.stopPropagation()
       const vm = this, { target: el, submitter } = e, { elements: els } = el
       const dest = els.namedItem('dest'), tip = el.querySelector('[name=tip]')
       URL.revokeObjectURL(vm.audioSrc)
@@ -70,10 +115,10 @@ export default defineComponent({
         tip.innerText = ''
         dest.value = list
       } catch (err) {
+        clearInterval(timer); timer = null
         tip.innerText = submitter.value + '失败'
         throw err
       } finally {
-        clearInterval(timer)
         submitter.disabled = false
       }
     }

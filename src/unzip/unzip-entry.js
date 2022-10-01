@@ -7,6 +7,7 @@ export class UnzipEntry {
     this.yauzlEntry = yauzlEntry
     this.yauzlZipFile = yauzlZipFile
     this.name = yauzlEntry.fileName
+    this.size = yauzlEntry.uncompressedSize
   }
   stream() {
     const { yauzlZipFile: zipfile, yauzlEntry: entry } = this
@@ -25,25 +26,28 @@ export class UnzipEntry {
   text() {
     return new Response(this.stream()).text()
   }
-  static readEntries(zipfile) {
-    return new Promise((ok, rej) => {
-      const entries = []
-      const done = () => {
-        zipfile.removeListener('entry', onentry)
-        zipfile.removeListener('end', onend)
-        zipfile.removeListener('error', onerr)
-      }
-      const onentry = (entry) => {
-        entries.push(new UnzipEntry(entry, zipfile))
-        zipfile.readEntry()
-      }
-      const onend = () => { ok(entries); done() }
-      const onerr = (err) => { rej(err); done() }
+  static async*readEntries(zipfile) {
+    let resolve, reject, done = false
+    const onentry = entry => { resolve(entry) }
+    const onend = () => { done = true; resolve() }
+    const onerr = err => { reject(err) }
+    const next = (_, __) => { resolve = _; reject = __; zipfile.readEntry() }
+    try {
       zipfile.on('entry', onentry)
       zipfile.on('end', onend)
       zipfile.on('error', onerr)
-      zipfile.readEntry()
-    })
+      while (true) {
+        const entry = await new Promise(next)
+        if (done) { return }
+        yield new UnzipEntry(entry, zipfile)
+      }
+    } catch (error) {
+      throw error
+    } finally {
+      zipfile.removeListener('entry', onentry)
+      zipfile.removeListener('end', onend)
+      zipfile.removeListener('error', onerr)
+    }
   }
   static async fromRandomAccessReader(createReadable, size) {
     const zipfile = await new Promise((ok, reject) => {
@@ -55,7 +59,7 @@ export class UnzipEntry {
         err == null ? ok(zipfile) : reject(err)
       })
     })
-    return await this.readEntries(zipfile)
+    return this.readEntries(zipfile)
   }
   static fromBlob(blob) {
     return this.fromRandomAccessReader((start, end) => {

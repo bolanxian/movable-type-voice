@@ -25,23 +25,68 @@ export class Archive {
     }
     return gen
   }
-  constructor(name) {
-    this.name = name
-    this.url = `${name}.zip`
+  static cachePromise = caches.open('movable-type-voice')
+  constructor(url, name) {
     this.blobPromise = null
+    this.entriesPromise = null
+    this.libraryPromise = null
+    this.parse = null
+    if (url instanceof Blob) {
+      this.url = null
+      this.name = name ?? (url instanceof File ? url.name : '')
+      this.blobPromise = Promise.resolve(url)
+    } else {
+      this.url = `${url}.zip`
+      this.name = name ?? url
+    }
   }
   async createBlob(init = {}) {
-    let response = await fetch(this.url)
-    const { status } = response
-    if (status !== 200) {
-      response.body?.cancel()
-      throw new TypeError(`Request failed with status code ${status}`)
+    const { url, name } = this, cache = await Archive.cachePromise
+    let response = await cache.match(url), put, onFetchProgress
+    if (response != null) {
+      const { headers } = response
+      const date = headers.get('date')
+      if (!((Date.now() - Date.parse(date)) < (1000 * 60 * 60 * 24 * 7))) {
+        const hasModifiedHeaders = {}
+        const etag = headers.get('etag'), lastModified = headers.get('last-modified')
+        if (etag != null) {
+          hasModifiedHeaders['if-none-match'] = etag
+        }
+        if (lastModified != null) {
+          hasModifiedHeaders['if-modified-since'] = lastModified
+        }
+        const hasModified = await fetch(url, { headers: hasModifiedHeaders })
+        if (hasModified.status === 304) {
+          for (const [key, value] of hasModified.headers) {
+            headers.set(key, value)
+          }
+          put = cache.put(url, response.clone())
+        } else if (hasModified.status === 200) {
+          response.body?.cancel()
+          response = hasModified
+          put = cache.put(url, response.clone())
+          onFetchProgress = init.onFetchProgress
+        } else {
+          response.body?.cancel()
+          hasModified.body?.cancel()
+          throw new TypeError(`Request failed with status code ${hasModified.status}`)
+        }
+      }
+    } else {
+      response = await fetch(url)
+      if (response.status !== 200) {
+        response.body?.cancel()
+        throw new TypeError(`Request failed with status code ${response.status}`)
+      }
+      put = cache.put(url, response.clone())
+      onFetchProgress = init.onFetchProgress
     }
-    if (init.onFetchProgress != null) {
-      response = ProgressSource.create(response, init.onFetchProgress)
+    if (onFetchProgress != null) {
+      response = ProgressSource.create(response, (progress) => { onFetchProgress(name, progress) })
     }
     const blob = await response.blob()
-    init.onFetchEnd?.()
+    if (put != null) { await put }
+    init.onFetchEnd?.(name)
     return blob
   }
   getBlob(init) {
@@ -50,16 +95,13 @@ export class Archive {
     }
     return this.blobPromise
   }
-  async createEntriesOld(init) {
-    const blob = await this.getBlob(init)
-    const buffer = Buffer.from(await blob.arrayBuffer())
-    return await UnzipEntry.fromBuffer(buffer)
-  }
   async createEntries(init) {
-    let result// = await UnzipEntry.fromUrl(this.url)
-    if (result != null) { return result }
-    const blob = await this.getBlob(init)
-    return await UnzipEntry.fromBlob(blob)
+    let array = [], entries// = await UnzipEntry.fromUrl(this.url)
+    if (entries == null) {
+      entries = await UnzipEntry.fromBlob(await this.getBlob(init))
+    }
+    for await (const entry of entries) { array.push(entry) }
+    return array
   }
   getEntries(init) {
     if (this.entriesPromise == null) {
@@ -69,10 +111,7 @@ export class Archive {
   }
   async createVoiceLibrary(sampleRate, init = {}) {
     const lib = new Library(sampleRate), { name } = this
-    lib.injectUnzipEntries(await this.getEntries(init.onFetchProgress != null ? {
-      onFetchProgress(progress) { init.onFetchProgress(name, progress) },
-      onFetchEnd() { init.onFetchEnd?.(name) }
-    } : null))
+    lib.injectUnzipEntries(await this.getEntries(init))
     this.parse = Archive.createParser(baseParserList)
     return lib
   }
@@ -88,21 +127,19 @@ export class Archive {
   }
 }
 export class ArchiveWithEx extends Archive {
-  constructor(name) {
-    super(`${name}.ex`)
-    this.main = new Archive(name)
-  }
-  set name(name) { }
-  get name() {
-    return `${this.main.name}(原声大碟)`
+  constructor(url, name) {
+    if (Array.isArray(url)) {
+      super(url[1], `${name}(原声大碟)`)
+      this.main = new Archive(url[0], name)
+    } else {
+      super(`${url}.ex`, `${name}(原声大碟)`)
+      this.main = new Archive(url, name)
+    }
   }
   async createVoiceLibrary(sampleRate, init = {}) {
     const lib = new Library(sampleRate)
     for (const arch of [this.main, this]) {
-      lib.injectUnzipEntries(await arch.getEntries(init.onFetchProgress != null ? {
-        onFetchProgress(progress) { init.onFetchProgress(arch.name, progress) },
-        onFetchEnd() { init.onFetchEnd?.(arch.name) }
-      } : null))
+      lib.injectUnzipEntries(await arch.getEntries(init))
     }
     const table = JSON.parse(await lib.entryMap.get('table').text())
     lib.entryMap.delete('table')
