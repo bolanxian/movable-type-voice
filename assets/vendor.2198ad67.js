@@ -10180,9 +10180,48 @@ try {
 }
 catch (e) { }
 
+const duplexToNode = (pair) => {
+  let reader, writer;
+  return new browser$3.exports.Duplex({
+    async construct(callback) {
+      let err = null; try {
+        reader = pair.readable.getReader();
+        writer = pair.writable.getWriter();
+        await writer.ready;
+      } catch (e) { err = e; }
+      callback(err);
+    },
+    async read(n) {
+      try {
+        const { done, value: chunk } = await reader.read();
+        if (done) { this.push(null); return }
+        this.push(Buffer$1.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+      } catch (e) { this.destroy(e); }
+    },
+    async write(chunk, encoding, callback) {
+      let err = null; try {
+        await writer.write(new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+      } catch (e) { err = e; }
+      callback(err);
+    },
+    async final(callback) {
+      let err = null; try {
+        await writer.close();
+      } catch (e) { err = e; }
+      callback(err);
+    },
+    async destroy(err, cb) {
+      try {
+        if (writer != null) { await writer.abort(err); }
+        else if (reader != null) { await reader.cancel(err); }
+      } catch (e) { err = e; }
+      cb(err);
+    }
+  })
+};
+
 const createTransform = (FflateStream) => {
-  let finalCallback;
-  const final = new Promise(ok => { finalCallback = ok; });
+  let final, finalCallback;
   const transform = new browser$3.exports.Transform({
     transform(chunk, encoding, callback) {
       let err = null; try {
@@ -10190,25 +10229,40 @@ const createTransform = (FflateStream) => {
       } catch (e) { err = e; }
       callback(err);
     },
-    async flush(callback) {
+    flush(callback) {
       let err = null; try {
         stream.push(new Uint8Array(0), true);
-        await final;
+        if (!final) { finalCallback = callback; return }
       } catch (e) { err = e; }
       callback(err);
     }
   });
-  const stream = new FflateStream((chunk, final) => {
+  const stream = new FflateStream((chunk, _) => {
     transform.push(Buffer$1.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
-    if (final) { finalCallback(); }
+    final = _;
+    if (final && finalCallback != null) { finalCallback(); }
   });
   return transform
 };
 
-const createInflateRaw = () => createTransform(Inflate);
+const createInflateRawNativeNative = () => new DecompressionStream('deflate-raw');
+const hasInflateRawNative = (() => {
+  try {
+    createInflateRawNativeNative();
+    return true
+  } catch (e) {
+    return false
+  }
+})();
+
+const createInflateRawNative = hasInflateRawNative ? () => duplexToNode(createInflateRawNativeNative()) : null;
+const createInflateRawFflate = () => createTransform(Inflate);
+const createInflateRaw = createInflateRawNative ?? createInflateRawFflate;
 
 const dummyZlib = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
+  createInflateRawNative,
+  createInflateRawFflate,
   createInflateRaw
 }, Symbol.toStringTag, { value: 'Module' }));
 

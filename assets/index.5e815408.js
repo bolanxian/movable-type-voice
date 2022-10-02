@@ -1,4 +1,4 @@
-import { b as browser, B as Buffer$1, y as yauzl, w as wav, s as speedometer, p as pinyinUtil, V as Vue, f as formatBytes_1, c as createApp, E as EventEmitter, a as stream } from './vendor.2f6f7ed0.js';
+import { b as browser, B as Buffer, y as yauzl, w as wav, s as speedometer, p as pinyinUtil, V as Vue, f as formatBytes_1, c as createApp, E as EventEmitter, a as stream } from './vendor.2198ad67.js';
 
 const style = '';
 
@@ -40,7 +40,7 @@ const readableToNode = (readable) => {
       try {
         const { done, value: chunk } = await reader.read();
         if (done) { this.push(null); return }
-        this.push(Buffer$1.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+        this.push(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
       } catch (e) { this.destroy(e); }
     },
     async destroy(err, cb) {
@@ -57,6 +57,7 @@ class UnzipEntry {
     this.yauzlEntry = yauzlEntry;
     this.yauzlZipFile = yauzlZipFile;
     this.name = yauzlEntry.fileName;
+    this.size = yauzlEntry.uncompressedSize;
   }
   stream() {
     const { yauzlZipFile: zipfile, yauzlEntry: entry } = this;
@@ -75,25 +76,28 @@ class UnzipEntry {
   text() {
     return new Response(this.stream()).text()
   }
-  static readEntries(zipfile) {
-    return new Promise((ok, rej) => {
-      const entries = [];
-      const done = () => {
-        zipfile.removeListener('entry', onentry);
-        zipfile.removeListener('end', onend);
-        zipfile.removeListener('error', onerr);
-      };
-      const onentry = (entry) => {
-        entries.push(new UnzipEntry(entry, zipfile));
-        zipfile.readEntry();
-      };
-      const onend = () => { ok(entries); done(); };
-      const onerr = (err) => { rej(err); done(); };
+  static async*readEntries(zipfile) {
+    let resolve, reject, done = false;
+    const onentry = entry => { resolve(entry); };
+    const onend = () => { done = true; resolve(); };
+    const onerr = err => { reject(err); };
+    const next = (_, __) => { resolve = _; reject = __; zipfile.readEntry(); };
+    try {
       zipfile.on('entry', onentry);
       zipfile.on('end', onend);
       zipfile.on('error', onerr);
-      zipfile.readEntry();
-    })
+      while (true) {
+        const entry = await new Promise(next);
+        if (done) { return }
+        yield new UnzipEntry(entry, zipfile);
+      }
+    } catch (error) {
+      throw error
+    } finally {
+      zipfile.removeListener('entry', onentry);
+      zipfile.removeListener('end', onend);
+      zipfile.removeListener('error', onerr);
+    }
   }
   static async fromRandomAccessReader(createReadable, size) {
     const zipfile = await new Promise((ok, reject) => {
@@ -105,7 +109,7 @@ class UnzipEntry {
         err == null ? ok(zipfile) : reject(err);
       });
     });
-    return await this.readEntries(zipfile)
+    return this.readEntries(zipfile)
   }
   static fromBlob(blob) {
     return this.fromRandomAccessReader((start, end) => {
@@ -244,36 +248,43 @@ class Library {
   }
 }
 
-const { min } = Math;
+const { min } = Math, noop = () => { };
 
 class Progress {
-  constructor(onProgress) {
-    this.loaded = this.total = 0;
-    this.streamSpeed = speedometer();
-    this.onProgress = onProgress;
+  #loaded
+  #total
+  #streamSpeed
+  #speed
+  #onProgress
+  constructor(total, onProgress = noop) {
+    this.#loaded = 0;
+    this.#total = total;
+    this.#streamSpeed = speedometer();
+    this.#onProgress = onProgress;
   }
+  get loaded() { return this.#loaded }
+  get total() { return this.#total }
   get percent() {
-    return min(99.9, this.loaded / this.total * 100).toFixed(1)
+    return min(99.9, 100 * this.#loaded / this.#total).toFixed(1)
   }
   get speed() {
-    return this.streamSpeed(0)
+    const speed = this.#speed;
+    if (speed != null) { return speed }
+    return this.#streamSpeed(0)
   }
   push(chunkLength) {
-    this.loaded += chunkLength;
-    this.streamSpeed(chunkLength);
-    this.onProgress(this);
+    this.#loaded += chunkLength;
+    this.#speed = this.#streamSpeed(chunkLength);
+    this.#onProgress(this);
+    this.#speed = null;
   }
 }
 class ProgressSource {
-  constructor(response, onProgress) {
+  constructor(response, onProgress, onChunk = noop) {
     const { body, headers } = response;
-    this.$body = body;
-    this.$progress = new Progress(onProgress);
-    this.$progress.total = +headers.get('content-length');
-    this.$progress.push(0);
-  }
-  start() {
-    this.$reader = this.$body.getReader();
+    this.$reader = body.getReader();
+    const progress = this.$progress = new Progress(+headers.get('content-length'), onChunk);
+    onProgress(progress);
   }
   async pull(controller) {
     const { done, value } = await this.$reader.read();
@@ -284,8 +295,8 @@ class ProgressSource {
   async cancel(reason) {
     await this.$reader.cancel(reason);
   }
-  static create(response, onProgress) {
-    const source = new ProgressSource(response, onProgress);
+  static create(response, onProgress, onChunk) {
+    const source = new ProgressSource(response, onProgress, onChunk);
     const stream = new ReadableStream(source);
     return new Response(stream, response)
   }
@@ -311,23 +322,68 @@ class Archive {
     };
     return gen
   }
-  constructor(name) {
-    this.name = name;
-    this.url = `${name}.zip`;
+  static cachePromise = caches.open('movable-type-voice')
+  constructor(url, name) {
     this.blobPromise = null;
+    this.entriesPromise = null;
+    this.libraryPromise = null;
+    this.parse = null;
+    if (url instanceof Blob) {
+      this.url = null;
+      this.name = name ?? (url instanceof File ? url.name : '');
+      this.blobPromise = Promise.resolve(url);
+    } else {
+      this.url = `${url}.zip`;
+      this.name = name ?? url;
+    }
   }
   async createBlob(init = {}) {
-    let response = await fetch(this.url);
-    const { status } = response;
-    if (status !== 200) {
-      response.body?.cancel();
-      throw new TypeError(`Request failed with status code ${status}`)
+    const { url, name } = this, cache = await Archive.cachePromise;
+    let response = await cache.match(url), put, onFetchProgress;
+    if (response != null) {
+      const { headers } = response;
+      const date = headers.get('date');
+      if (!((Date.now() - Date.parse(date)) < (1000 * 60 * 60 * 24 * 7))) {
+        const hasModifiedHeaders = {};
+        const etag = headers.get('etag'), lastModified = headers.get('last-modified');
+        if (etag != null) {
+          hasModifiedHeaders['if-none-match'] = etag;
+        }
+        if (lastModified != null) {
+          hasModifiedHeaders['if-modified-since'] = lastModified;
+        }
+        const hasModified = await fetch(url, { headers: hasModifiedHeaders });
+        if (hasModified.status === 304) {
+          for (const [key, value] of hasModified.headers) {
+            headers.set(key, value);
+          }
+          put = cache.put(url, response.clone());
+        } else if (hasModified.status === 200) {
+          response.body?.cancel();
+          response = hasModified;
+          put = cache.put(url, response.clone());
+          onFetchProgress = init.onFetchProgress;
+        } else {
+          response.body?.cancel();
+          hasModified.body?.cancel();
+          throw new TypeError(`Request failed with status code ${hasModified.status}`)
+        }
+      }
+    } else {
+      response = await fetch(url);
+      if (response.status !== 200) {
+        response.body?.cancel();
+        throw new TypeError(`Request failed with status code ${response.status}`)
+      }
+      put = cache.put(url, response.clone());
+      onFetchProgress = init.onFetchProgress;
     }
-    if (init.onFetchProgress != null) {
-      response = ProgressSource.create(response, init.onFetchProgress);
+    if (onFetchProgress != null) {
+      response = ProgressSource.create(response, (progress) => { onFetchProgress(name, progress); });
     }
     const blob = await response.blob();
-    init.onFetchEnd?.();
+    if (put != null) { await put; }
+    init.onFetchEnd?.(name);
     return blob
   }
   getBlob(init) {
@@ -336,14 +392,13 @@ class Archive {
     }
     return this.blobPromise
   }
-  async createEntriesOld(init) {
-    const blob = await this.getBlob(init);
-    const buffer = Buffer.from(await blob.arrayBuffer());
-    return await UnzipEntry.fromBuffer(buffer)
-  }
   async createEntries(init) {
-    const blob = await this.getBlob(init);
-    return await UnzipEntry.fromBlob(blob)
+    let array = [], entries;// = await UnzipEntry.fromUrl(this.url)
+    if (entries == null) {
+      entries = await UnzipEntry.fromBlob(await this.getBlob(init));
+    }
+    for await (const entry of entries) { array.push(entry); }
+    return array
   }
   getEntries(init) {
     if (this.entriesPromise == null) {
@@ -352,11 +407,8 @@ class Archive {
     return this.entriesPromise
   }
   async createVoiceLibrary(sampleRate, init = {}) {
-    const lib = new Library(sampleRate), { name } = this;
-    lib.injectUnzipEntries(await this.getEntries(init.onFetchProgress != null ? {
-      onFetchProgress(progress) { init.onFetchProgress(name, progress); },
-      onFetchEnd() { init.onFetchEnd?.(name); }
-    } : null));
+    const lib = new Library(sampleRate);
+    lib.injectUnzipEntries(await this.getEntries(init));
     this.parse = Archive.createParser(baseParserList);
     return lib
   }
@@ -372,21 +424,19 @@ class Archive {
   }
 }
 class ArchiveWithEx extends Archive {
-  constructor(name) {
-    super(`${name}.ex`);
-    this.main = new Archive(name);
-  }
-  set name(name) { }
-  get name() {
-    return `${this.main.name}(原声大碟)`
+  constructor(url, name) {
+    if (Array.isArray(url)) {
+      super(url[1], `${name}(原声大碟)`);
+      this.main = new Archive(url[0], name);
+    } else {
+      super(`${url}.ex`, `${name}(原声大碟)`);
+      this.main = new Archive(url, name);
+    }
   }
   async createVoiceLibrary(sampleRate, init = {}) {
     const lib = new Library(sampleRate);
     for (const arch of [this.main, this]) {
-      lib.injectUnzipEntries(await arch.getEntries(init.onFetchProgress != null ? {
-        onFetchProgress(progress) { init.onFetchProgress(arch.name, progress); },
-        onFetchEnd() { init.onFetchEnd?.(arch.name); }
-      } : null));
+      lib.injectUnzipEntries(await arch.getEntries(init));
     }
     const table = JSON.parse(await lib.entryMap.get('table').text());
     lib.entryMap.delete('table');
@@ -411,30 +461,74 @@ const Main = defineComponent({
       audioSrc: null
     }
   },
-  created() {
+  beforeMount() {
     const vm = this;
-    const otto = new ArchiveWithEx('./otto');
-    otto.main.name = '电棍';
-    const taffy = new Archive('./taffy');
-    taffy.name = '塔菲';
+    const otto = new ArchiveWithEx('./otto', '电棍');
+    const taffy = new Archive('./taffy', '塔菲');
     const archs = vm.voices = new Map();
-    for (const arch of [
-      otto.main,
-      otto,
-      taffy
-    ]) {
+    for (const arch of [otto.main, otto, taffy]) {
       archs.set(arch.name, arch);
     }
   },
   mounted() {
-    const el = this.$el;
-    el.ownerDocument.title = name;
-    el.querySelector('[name="voice"]').click();
+    const el = this.$el, doc = el.ownerDocument;
+    doc.title = name;
+    el.querySelector('[name=voice]').click();
+    doc.addEventListener('dragover', this.handleDragover);
+    doc.addEventListener('drop', this.handleDrop);
+  },
+  beforeUnmount() {
+    const el = this.$el, doc = el.ownerDocument;
+    doc.removeEventListener('dragover', this.handleDragover);
+    doc.removeEventListener('drop', this.handleDrop);
   },
   methods: {
+    handleDragover(e) {
+      e.preventDefault(); e.stopPropagation();
+    },
+    handleDrop(e) {
+      const { target } = e;
+      if (this.global && !this.$el.contains(target) && e.type !== 'paste') {
+        const tag = target.tagName.toUpperCase();
+        const able = target.getAttribute('contenteditable');
+        if ('INPUT' === tag || 'TEXTAREA' === tag || '' === able || 'true' === able) return
+      }
+      e.preventDefault(); e.stopPropagation();
+      const dT = e.dataTransfer ?? e.clipboardData;
+      if (dT == null) return
+      const suffix = '.zip', suffixEx = '.ex.zip';
+      let main, ex;
+      for (const file of dT.files) {
+        if (file.name.endsWith(suffixEx)) { ex = file; }
+        else if (file.name.endsWith(suffix)) { main = file; }
+        //if (file.name.endsWith('.zip')) { this.handleZip(file); return }
+      }
+      const archs = this.voices;
+      if (main != null) {
+        const name = main.name.slice(0, -suffix.length);
+        if (ex != null) {
+          if (ex.name.slice(0, -suffixEx.length) != name) { return }
+          const arch = new ArchiveWithEx([main, ex], name);
+          archs.set(arch.main.name, arch.main);
+          archs.set(arch.name, arch);
+        } else {
+          archs.set(name, new Archive(main, name));
+        }
+        this.$forceUpdate();
+      }
+    },
+    async handleZip(file) {
+      const { name } = file, array = [];
+      const entries = await UnzipEntry.fromBlob(file);
+      for await (const entry of entries) {
+        array.push(entry);
+        console.log(name, entry.name, entry);
+        await entry.stream().pipeTo(new WritableStream());
+      }
+      console.log(file, array);
+    },
     async handleSubmit(e) {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       const vm = this, { target: el, submitter } = e, { elements: els } = el;
       const dest = els.namedItem('dest'), tip = el.querySelector('[name=tip]');
       URL.revokeObjectURL(vm.audioSrc);
@@ -466,10 +560,10 @@ const Main = defineComponent({
         tip.innerText = '';
         dest.value = list;
       } catch (err) {
+        clearInterval(timer); timer = null;
         tip.innerText = submitter.value + '失败';
         throw err
       } finally {
-        clearInterval(timer);
         submitter.disabled = false;
       }
     }
@@ -501,6 +595,6 @@ const Main = defineComponent({
 const vm = createApp(Main).mount('#app');
 
 Object.assign(window, {
-  modules: { Buffer: Buffer$1, EventEmitter, stream, wav, yauzl, pinyinUtil, Vue },
+  modules: { Buffer, EventEmitter, stream, wav, yauzl, pinyinUtil, Vue },
   vm
 });
