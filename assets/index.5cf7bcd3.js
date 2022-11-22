@@ -1,4 +1,4 @@
-import { b as browser, B as Buffer, y as yauzl, w as wav, s as speedometer, p as pinyinUtil, V as Vue, f as formatBytes_1, c as createApp, E as EventEmitter, a as stream } from './vendor.2198ad67.js';
+import { b as browser, B as Buffer, y as yauzl, w as wav, s as speedometer, p as pinyinUtil, V as Vue, c as createApp, E as EventEmitter, a as stream } from './vendor.1695e305.js';
 
 const style = '';
 
@@ -109,7 +109,7 @@ class UnzipEntry {
         err == null ? ok(zipfile) : reject(err);
       });
     });
-    return this.readEntries(zipfile)
+    return [zipfile.entryCount, this.readEntries(zipfile)]
   }
   static fromBlob(blob) {
     return this.fromRandomAccessReader((start, end) => {
@@ -248,58 +248,75 @@ class Library {
   }
 }
 
-const { min } = Math, noop = () => { };
-
+const { MAX_SAFE_INTEGER: MAX_SAFE_INTEGER$1 } = Number, { min: min$1 } = Math;
+let update, final;
 class Progress {
-  #loaded
-  #total
-  #streamSpeed
-  #speed
-  #onProgress
-  constructor(total, onProgress = noop) {
-    this.#loaded = 0;
-    this.#total = total;
-    this.#streamSpeed = speedometer();
-    this.#onProgress = onProgress;
+  static {
+    update = (that, chunkLength) => {
+      that.#loaded += chunkLength;
+      that.#speedometer(chunkLength);
+    };
+    final = (that) => {
+      that.#isFinalized = true;
+      that.#speedometer = Number;
+    };
+  }
+  #loaded = 0
+  #total = 0
+  #lengthComputable = false
+  #speedometer = speedometer()
+  #isFinalized = false
+  constructor(total) {
+    switch (typeof total) {
+      default:
+        total = String(total);
+      case 'string':
+        total = +total;
+      case 'number':
+    }
+    if (total > 0 && total <= MAX_SAFE_INTEGER$1) {
+      this.#total = total;
+      this.#lengthComputable = true;
+    }
   }
   get loaded() { return this.#loaded }
   get total() { return this.#total }
+  get lengthComputable() { return this.#lengthComputable }
+  get speed() { return this.#speedometer(0) }
   get percent() {
-    return min(99.9, 100 * this.#loaded / this.#total).toFixed(1)
-  }
-  get speed() {
-    const speed = this.#speed;
-    if (speed != null) { return speed }
-    return this.#streamSpeed(0)
-  }
-  push(chunkLength) {
-    this.#loaded += chunkLength;
-    this.#speed = this.#streamSpeed(chunkLength);
-    this.#onProgress(this);
-    this.#speed = null;
+    if (this.#isFinalized) { return '100%' }
+    if (!this.#lengthComputable) { return 'NaN%' }
+    let percent = min$1(99.9, 100 * this.#loaded / this.#total);
+    return percent.toFixed(1) + '%'
   }
 }
-class ProgressSource {
-  constructor(response, onProgress, onChunk = noop) {
+class ProgressTransformer {
+  #progress
+  constructor(progress) {
+    this.#progress = progress;
+  }
+  transform(chunk, controller) {
+    update(this.#progress, chunk.byteLength);
+    controller.enqueue(chunk);
+  }
+  flush(controller) {
+    final(this.#progress);
+  }
+}
+class ProgressStream extends TransformStream {
+  static fromResponse(response) {
     const { body, headers } = response;
-    this.$reader = body.getReader();
-    const progress = this.$progress = new Progress(+headers.get('content-length'), onChunk);
-    onProgress(progress);
+    const that = new this(headers.get('content-length'));
+    const readable = body.locked ? that.readable : body.pipeThrough(that);
+    return [that, new Response(readable, response)]
   }
-  async pull(controller) {
-    const { done, value } = await this.$reader.read();
-    if (done) { controller.close(); return }
-    controller.enqueue(value);
-    this.$progress.push(value.byteLength);
+  #progress
+  constructor(total) {
+    const progress = new Progress(total);
+    super(new ProgressTransformer(progress));
+    this.#progress = progress;
   }
-  async cancel(reason) {
-    await this.$reader.cancel(reason);
-  }
-  static create(response, onProgress, onChunk) {
-    const source = new ProgressSource(response, onProgress, onChunk);
-    const stream = new ReadableStream(source);
-    return new Response(stream, response)
-  }
+  get progress() { return this.#progress }
 }
 
 const baseParserList = [
@@ -339,7 +356,8 @@ class Archive {
   }
   async createBlob(init = {}) {
     const { url, name } = this, cache = await Archive.cachePromise;
-    let response = await cache.match(url), put, onFetchProgress;
+    init.onFetchStart?.(name);
+    let response = await cache.match(url), put, onFetch;
     if (response != null) {
       const { headers } = response;
       const date = headers.get('date');
@@ -359,27 +377,24 @@ class Archive {
           }
           put = cache.put(url, response.clone());
         } else if (hasModified.status === 200) {
-          response.body?.cancel();
           response = hasModified;
           put = cache.put(url, response.clone());
-          onFetchProgress = init.onFetchProgress;
+          onFetch = init.onFetch;
         } else {
-          response.body?.cancel();
-          hasModified.body?.cancel();
           throw new TypeError(`Request failed with status code ${hasModified.status}`)
         }
       }
     } else {
       response = await fetch(url);
       if (response.status !== 200) {
-        response.body?.cancel();
         throw new TypeError(`Request failed with status code ${response.status}`)
       }
       put = cache.put(url, response.clone());
-      onFetchProgress = init.onFetchProgress;
+      onFetch = init.onFetch;
     }
-    if (onFetchProgress != null) {
-      response = ProgressSource.create(response, (progress) => { onFetchProgress(name, progress); });
+    if (onFetch != null) {
+      let stream;[stream, response] = ProgressStream.fromResponse(response);
+      onFetch(name, stream.progress);
     }
     const blob = await response.blob();
     if (put != null) { await put; }
@@ -393,11 +408,13 @@ class Archive {
     return this.blobPromise
   }
   async createEntries(init) {
-    let array = [], entries;// = await UnzipEntry.fromUrl(this.url)
-    if (entries == null) {
-      entries = await UnzipEntry.fromBlob(await this.getBlob(init));
-    }
+    const { name } = this;
+    //entries = await UnzipEntry.fromUrl(this.url)
+    const blob = await this.getBlob(init);
+    init.onUnzipStart?.(name);
+    const [entryCount, entries] = await UnzipEntry.fromBlob(blob), array = [];
     for await (const entry of entries) { array.push(entry); }
+    init.onUnzipEnd?.(name);
     return array
   }
   getEntries(init) {
@@ -438,10 +455,11 @@ class ArchiveWithEx extends Archive {
     for (const arch of [this.main, this]) {
       lib.injectUnzipEntries(await arch.getEntries(init));
     }
-    const table = JSON.parse(await lib.entryMap.get('table').text());
+    const tableEntry = lib.entryMap.get('table');
+    const table = tableEntry != null ? JSON.parse(await tableEntry.text()) : {};
     lib.entryMap.delete('table');
     this.parse = Archive.createParser([
-      [new RegExp(Object.keys(table).join('|')), str => table[str]],
+      [new RegExp(Object.keys(table).sort((a, b) => b.length - a.length).join('|')), str => table[str]],
       ...baseParserList
     ]);
     return lib
@@ -450,8 +468,21 @@ class ArchiveWithEx extends Archive {
 
 const { createVNode: h, defineComponent } = Vue;
 
-const formatProgress = ({ loaded, total, percent, speed }) => {
-  return `[${percent}%][${formatBytes_1(Math.trunc(speed))}/s][${formatBytes_1(loaded)}/${formatBytes_1(total)}]`
+const { MAX_SAFE_INTEGER } = Number, { pow, min, trunc } = Math;
+const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
+const exps = Array.from(units, (_, i) => pow(0x400, i));
+const formatBytes = bytes => {
+  let i = 1, len = exps.length;
+  while (i < len && bytes > exps[i]) { i++; } i--;
+  return (bytes / exps[i]).toFixed(min(2, i >> 1)) + ' ' + units[i]
+};
+const formatRemaining = function* (time) {
+  let i = 0; time = +time;
+  if (!(time >= 0 && time <= MAX_SAFE_INTEGER)) { return yield '未知' }
+  if (time >= 86400) { yield trunc(time / 86400) + '天'; time %= 86400; i++; }
+  if (time >= 3600 || i > 0) { yield trunc(time / 3600) + '时'; time %= 3600; i++; }
+  if (time >= 60 || i > 0) { yield trunc(time / 60) + '分'; time %= 60; }
+  yield trunc(time) + '秒';
 };
 const name = '活字印刷语音';
 const Main = defineComponent({
@@ -536,32 +567,44 @@ const Main = defineComponent({
       submitter.disabled = true;
       tip.innerText = '';
       dest.value = '';
-      let timer = null;
+      let timer = null, name, progress, step, onProgress = () => {
+        const { loaded, total, percent, speed } = progress;
+        const notLoaded = total - loaded;
+        const [a, b = ''] = formatRemaining(notLoaded > 0 ? notLoaded / speed : 0);
+        tip.innerText = `加载 ${name}[${percent}][${formatBytes(loaded)}/${formatBytes(total)}][${formatBytes(speed)}/s][剩余 ${a}${b} ]`;
+      };
       try {
+        tip.innerText = (step = '加载') + '中';
         const archive = vm.voices.get(els.namedItem('voice').value);
-        let name, progress, onFetchProgress = () => {
-          tip.innerText = `加载 ${name}${formatProgress(progress)}`;
-        };
         const lib = await archive.getVoiceLibrary(48000, {
-          onFetchProgress(_name, _progress) {
+          onFetchStart(name) {
+            tip.innerText = `开始下载 ${name}`;
+          },
+          onFetch(_name, _progress) {
             name = _name; progress = _progress;
             if (timer != null) { return }
-            timer = setInterval(onFetchProgress, 200);
-            onFetchProgress();
+            timer = setInterval(onProgress, 200);
+            onProgress();
           },
           onFetchEnd(name) {
             clearInterval(timer); timer = null;
+            tip.innerText = `下载完成 ${name}`;
+          },
+          onUnzipStart(name) {
+            tip.innerText = `开始加载 ${name}`;
+          },
+          onUnzipEnd(name) {
             tip.innerText = `加载完成 ${name}`;
           }
         });
-        tip.innerText = submitter.value + '中';
+        tip.innerText = (step = submitter.value) + '中';
         const list = Array.from(archive.parse(els.namedItem('src').value)).join(' ');
         vm.audioSrc = URL.createObjectURL(await lib.concat(list.split(' ')));
         tip.innerText = '';
         dest.value = list;
       } catch (err) {
         clearInterval(timer); timer = null;
-        tip.innerText = submitter.value + '失败';
+        tip.innerText = step + '失败';
         throw err
       } finally {
         submitter.disabled = false;

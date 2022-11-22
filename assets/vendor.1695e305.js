@@ -236,7 +236,7 @@ var INSPECT_MAX_BYTES = 50;
  * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they
  * get the Object implementation, which is slower but behaves correctly.
  */
-Buffer$1.TYPED_ARRAY_SUPPORT = global$1.TYPED_ARRAY_SUPPORT !== undefined
+Buffer$4.TYPED_ARRAY_SUPPORT = global$1.TYPED_ARRAY_SUPPORT !== undefined
   ? global$1.TYPED_ARRAY_SUPPORT
   : true;
 
@@ -246,7 +246,7 @@ Buffer$1.TYPED_ARRAY_SUPPORT = global$1.TYPED_ARRAY_SUPPORT !== undefined
 var _kMaxLength = kMaxLength();
 
 function kMaxLength () {
-  return Buffer$1.TYPED_ARRAY_SUPPORT
+  return Buffer$4.TYPED_ARRAY_SUPPORT
     ? 0x7fffffff
     : 0x3fffffff
 }
@@ -255,14 +255,14 @@ function createBuffer (that, length) {
   if (kMaxLength() < length) {
     throw new RangeError('Invalid typed array length')
   }
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     // Return an augmented `Uint8Array` instance, for best performance
     that = new Uint8Array(length);
-    that.__proto__ = Buffer$1.prototype;
+    that.__proto__ = Buffer$4.prototype;
   } else {
     // Fallback: Return an object instance of the Buffer class
     if (that === null) {
-      that = new Buffer$1(length);
+      that = new Buffer$4(length);
     }
     that.length = length;
   }
@@ -280,9 +280,9 @@ function createBuffer (that, length) {
  * The `Uint8Array` prototype remains unmodified.
  */
 
-function Buffer$1 (arg, encodingOrOffset, length) {
-  if (!Buffer$1.TYPED_ARRAY_SUPPORT && !(this instanceof Buffer$1)) {
-    return new Buffer$1(arg, encodingOrOffset, length)
+function Buffer$4 (arg, encodingOrOffset, length) {
+  if (!Buffer$4.TYPED_ARRAY_SUPPORT && !(this instanceof Buffer$4)) {
+    return new Buffer$4(arg, encodingOrOffset, length)
   }
 
   // Common case.
@@ -297,11 +297,11 @@ function Buffer$1 (arg, encodingOrOffset, length) {
   return from$1(this, arg, encodingOrOffset, length)
 }
 
-Buffer$1.poolSize = 8192; // not used by this implementation
+Buffer$4.poolSize = 8192; // not used by this implementation
 
 // TODO: Legacy, not needed anymore. Remove in next major version.
-Buffer$1._augment = function (arr) {
-  arr.__proto__ = Buffer$1.prototype;
+Buffer$4._augment = function (arr) {
+  arr.__proto__ = Buffer$4.prototype;
   return arr
 };
 
@@ -329,13 +329,13 @@ function from$1 (that, value, encodingOrOffset, length) {
  * Buffer.from(buffer)
  * Buffer.from(arrayBuffer[, byteOffset[, length]])
  **/
-Buffer$1.from = function (value, encodingOrOffset, length) {
+Buffer$4.from = function (value, encodingOrOffset, length) {
   return from$1(null, value, encodingOrOffset, length)
 };
 
-if (Buffer$1.TYPED_ARRAY_SUPPORT) {
-  Buffer$1.prototype.__proto__ = Uint8Array.prototype;
-  Buffer$1.__proto__ = Uint8Array;
+if (Buffer$4.TYPED_ARRAY_SUPPORT) {
+  Buffer$4.prototype.__proto__ = Uint8Array.prototype;
+  Buffer$4.__proto__ = Uint8Array;
 }
 
 function assertSize (size) {
@@ -366,14 +366,14 @@ function alloc (that, size, fill, encoding) {
  * Creates a new filled Buffer instance.
  * alloc(size[, fill[, encoding]])
  **/
-Buffer$1.alloc = function (size, fill, encoding) {
+Buffer$4.alloc = function (size, fill, encoding) {
   return alloc(null, size, fill, encoding)
 };
 
 function allocUnsafe (that, size) {
   assertSize(size);
   that = createBuffer(that, size < 0 ? 0 : checked(size) | 0);
-  if (!Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (!Buffer$4.TYPED_ARRAY_SUPPORT) {
     for (var i = 0; i < size; ++i) {
       that[i] = 0;
     }
@@ -384,13 +384,13 @@ function allocUnsafe (that, size) {
 /**
  * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
  * */
-Buffer$1.allocUnsafe = function (size) {
+Buffer$4.allocUnsafe = function (size) {
   return allocUnsafe(null, size)
 };
 /**
  * Equivalent to SlowBuffer(num), by default creates a non-zero-filled Buffer instance.
  */
-Buffer$1.allocUnsafeSlow = function (size) {
+Buffer$4.allocUnsafeSlow = function (size) {
   return allocUnsafe(null, size)
 };
 
@@ -399,7 +399,7 @@ function fromString (that, string, encoding) {
     encoding = 'utf8';
   }
 
-  if (!Buffer$1.isEncoding(encoding)) {
+  if (!Buffer$4.isEncoding(encoding)) {
     throw new TypeError('"encoding" must be a valid string encoding')
   }
 
@@ -446,10 +446,10 @@ function fromArrayBuffer (that, array, byteOffset, length) {
     array = new Uint8Array(array, byteOffset, length);
   }
 
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     // Return an augmented `Uint8Array` instance, for best performance
     that = array;
-    that.__proto__ = Buffer$1.prototype;
+    that.__proto__ = Buffer$4.prototype;
   } else {
     // Fallback: Return an object instance of the Buffer class
     that = fromArrayLike(that, array);
@@ -501,14 +501,14 @@ function SlowBuffer (length) {
   if (+length != length) { // eslint-disable-line eqeqeq
     length = 0;
   }
-  return Buffer$1.alloc(+length)
+  return Buffer$4.alloc(+length)
 }
-Buffer$1.isBuffer = isBuffer$1;
+Buffer$4.isBuffer = isBuffer$1;
 function internalIsBuffer (b) {
   return !!(b != null && b._isBuffer)
 }
 
-Buffer$1.compare = function compare (a, b) {
+Buffer$4.compare = function compare (a, b) {
   if (!internalIsBuffer(a) || !internalIsBuffer(b)) {
     throw new TypeError('Arguments must be Buffers')
   }
@@ -531,7 +531,7 @@ Buffer$1.compare = function compare (a, b) {
   return 0
 };
 
-Buffer$1.isEncoding = function isEncoding (encoding) {
+Buffer$4.isEncoding = function isEncoding (encoding) {
   switch (String(encoding).toLowerCase()) {
     case 'hex':
     case 'utf8':
@@ -550,13 +550,13 @@ Buffer$1.isEncoding = function isEncoding (encoding) {
   }
 };
 
-Buffer$1.concat = function concat (list, length) {
+Buffer$4.concat = function concat (list, length) {
   if (!isArray$2(list)) {
     throw new TypeError('"list" argument must be an Array of Buffers')
   }
 
   if (list.length === 0) {
-    return Buffer$1.alloc(0)
+    return Buffer$4.alloc(0)
   }
 
   var i;
@@ -567,7 +567,7 @@ Buffer$1.concat = function concat (list, length) {
     }
   }
 
-  var buffer = Buffer$1.allocUnsafe(length);
+  var buffer = Buffer$4.allocUnsafe(length);
   var pos = 0;
   for (i = 0; i < list.length; ++i) {
     var buf = list[i];
@@ -623,7 +623,7 @@ function byteLength (string, encoding) {
     }
   }
 }
-Buffer$1.byteLength = byteLength;
+Buffer$4.byteLength = byteLength;
 
 function slowToString (encoding, start, end) {
   var loweredCase = false;
@@ -697,7 +697,7 @@ function slowToString (encoding, start, end) {
 
 // The property is used by `Buffer.isBuffer` and `is-buffer` (in Safari 5-7) to detect
 // Buffer instances.
-Buffer$1.prototype._isBuffer = true;
+Buffer$4.prototype._isBuffer = true;
 
 function swap (b, n, m) {
   var i = b[n];
@@ -705,7 +705,7 @@ function swap (b, n, m) {
   b[m] = i;
 }
 
-Buffer$1.prototype.swap16 = function swap16 () {
+Buffer$4.prototype.swap16 = function swap16 () {
   var len = this.length;
   if (len % 2 !== 0) {
     throw new RangeError('Buffer size must be a multiple of 16-bits')
@@ -716,7 +716,7 @@ Buffer$1.prototype.swap16 = function swap16 () {
   return this
 };
 
-Buffer$1.prototype.swap32 = function swap32 () {
+Buffer$4.prototype.swap32 = function swap32 () {
   var len = this.length;
   if (len % 4 !== 0) {
     throw new RangeError('Buffer size must be a multiple of 32-bits')
@@ -728,7 +728,7 @@ Buffer$1.prototype.swap32 = function swap32 () {
   return this
 };
 
-Buffer$1.prototype.swap64 = function swap64 () {
+Buffer$4.prototype.swap64 = function swap64 () {
   var len = this.length;
   if (len % 8 !== 0) {
     throw new RangeError('Buffer size must be a multiple of 64-bits')
@@ -742,20 +742,20 @@ Buffer$1.prototype.swap64 = function swap64 () {
   return this
 };
 
-Buffer$1.prototype.toString = function toString () {
+Buffer$4.prototype.toString = function toString () {
   var length = this.length | 0;
   if (length === 0) return ''
   if (arguments.length === 0) return utf8Slice(this, 0, length)
   return slowToString.apply(this, arguments)
 };
 
-Buffer$1.prototype.equals = function equals (b) {
+Buffer$4.prototype.equals = function equals (b) {
   if (!internalIsBuffer(b)) throw new TypeError('Argument must be a Buffer')
   if (this === b) return true
-  return Buffer$1.compare(this, b) === 0
+  return Buffer$4.compare(this, b) === 0
 };
 
-Buffer$1.prototype.inspect = function inspect () {
+Buffer$4.prototype.inspect = function inspect () {
   var str = '';
   var max = INSPECT_MAX_BYTES;
   if (this.length > 0) {
@@ -765,7 +765,7 @@ Buffer$1.prototype.inspect = function inspect () {
   return '<Buffer ' + str + '>'
 };
 
-Buffer$1.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+Buffer$4.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
   if (!internalIsBuffer(target)) {
     throw new TypeError('Argument must be a Buffer')
   }
@@ -864,7 +864,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
 
   // Normalize val
   if (typeof val === 'string') {
-    val = Buffer$1.from(val, encoding);
+    val = Buffer$4.from(val, encoding);
   }
 
   // Finally, search either indexOf (if dir is true) or lastIndexOf
@@ -876,7 +876,7 @@ function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
     return arrayIndexOf(buffer, val, byteOffset, encoding, dir)
   } else if (typeof val === 'number') {
     val = val & 0xFF; // Search for a byte value [0-255]
-    if (Buffer$1.TYPED_ARRAY_SUPPORT &&
+    if (Buffer$4.TYPED_ARRAY_SUPPORT &&
         typeof Uint8Array.prototype.indexOf === 'function') {
       if (dir) {
         return Uint8Array.prototype.indexOf.call(buffer, val, byteOffset)
@@ -946,15 +946,15 @@ function arrayIndexOf (arr, val, byteOffset, encoding, dir) {
   return -1
 }
 
-Buffer$1.prototype.includes = function includes (val, byteOffset, encoding) {
+Buffer$4.prototype.includes = function includes (val, byteOffset, encoding) {
   return this.indexOf(val, byteOffset, encoding) !== -1
 };
 
-Buffer$1.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
+Buffer$4.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
   return bidirectionalIndexOf(this, val, byteOffset, encoding, true)
 };
 
-Buffer$1.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
+Buffer$4.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
   return bidirectionalIndexOf(this, val, byteOffset, encoding, false)
 };
 
@@ -1005,7 +1005,7 @@ function ucs2Write (buf, string, offset, length) {
   return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
 }
 
-Buffer$1.prototype.write = function write (string, offset, length, encoding) {
+Buffer$4.prototype.write = function write (string, offset, length, encoding) {
   // Buffer#write(string)
   if (offset === undefined) {
     encoding = 'utf8';
@@ -1077,7 +1077,7 @@ Buffer$1.prototype.write = function write (string, offset, length, encoding) {
   }
 };
 
-Buffer$1.prototype.toJSON = function toJSON () {
+Buffer$4.prototype.toJSON = function toJSON () {
   return {
     type: 'Buffer',
     data: Array.prototype.slice.call(this._arr || this, 0)
@@ -1230,7 +1230,7 @@ function utf16leSlice (buf, start, end) {
   return res
 }
 
-Buffer$1.prototype.slice = function slice (start, end) {
+Buffer$4.prototype.slice = function slice (start, end) {
   var len = this.length;
   start = ~~start;
   end = end === undefined ? len : ~~end;
@@ -1252,12 +1252,12 @@ Buffer$1.prototype.slice = function slice (start, end) {
   if (end < start) end = start;
 
   var newBuf;
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     newBuf = this.subarray(start, end);
-    newBuf.__proto__ = Buffer$1.prototype;
+    newBuf.__proto__ = Buffer$4.prototype;
   } else {
     var sliceLen = end - start;
-    newBuf = new Buffer$1(sliceLen, undefined);
+    newBuf = new Buffer$4(sliceLen, undefined);
     for (var i = 0; i < sliceLen; ++i) {
       newBuf[i] = this[i + start];
     }
@@ -1274,7 +1274,7 @@ function checkOffset (offset, ext, length) {
   if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
 }
 
-Buffer$1.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
+Buffer$4.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
   offset = offset | 0;
   byteLength = byteLength | 0;
   if (!noAssert) checkOffset(offset, byteLength, this.length);
@@ -1289,7 +1289,7 @@ Buffer$1.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAsser
   return val
 };
 
-Buffer$1.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
+Buffer$4.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
   offset = offset | 0;
   byteLength = byteLength | 0;
   if (!noAssert) {
@@ -1305,22 +1305,22 @@ Buffer$1.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAsser
   return val
 };
 
-Buffer$1.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
+Buffer$4.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 1, this.length);
   return this[offset]
 };
 
-Buffer$1.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
+Buffer$4.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 2, this.length);
   return this[offset] | (this[offset + 1] << 8)
 };
 
-Buffer$1.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
+Buffer$4.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 2, this.length);
   return (this[offset] << 8) | this[offset + 1]
 };
 
-Buffer$1.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
+Buffer$4.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 4, this.length);
 
   return ((this[offset]) |
@@ -1329,7 +1329,7 @@ Buffer$1.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
       (this[offset + 3] * 0x1000000)
 };
 
-Buffer$1.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
+Buffer$4.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 4, this.length);
 
   return (this[offset] * 0x1000000) +
@@ -1338,7 +1338,7 @@ Buffer$1.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
     this[offset + 3])
 };
 
-Buffer$1.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
+Buffer$4.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
   offset = offset | 0;
   byteLength = byteLength | 0;
   if (!noAssert) checkOffset(offset, byteLength, this.length);
@@ -1356,7 +1356,7 @@ Buffer$1.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert)
   return val
 };
 
-Buffer$1.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
+Buffer$4.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
   offset = offset | 0;
   byteLength = byteLength | 0;
   if (!noAssert) checkOffset(offset, byteLength, this.length);
@@ -1374,25 +1374,25 @@ Buffer$1.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert)
   return val
 };
 
-Buffer$1.prototype.readInt8 = function readInt8 (offset, noAssert) {
+Buffer$4.prototype.readInt8 = function readInt8 (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 1, this.length);
   if (!(this[offset] & 0x80)) return (this[offset])
   return ((0xff - this[offset] + 1) * -1)
 };
 
-Buffer$1.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
+Buffer$4.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 2, this.length);
   var val = this[offset] | (this[offset + 1] << 8);
   return (val & 0x8000) ? val | 0xFFFF0000 : val
 };
 
-Buffer$1.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
+Buffer$4.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 2, this.length);
   var val = this[offset + 1] | (this[offset] << 8);
   return (val & 0x8000) ? val | 0xFFFF0000 : val
 };
 
-Buffer$1.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
+Buffer$4.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 4, this.length);
 
   return (this[offset]) |
@@ -1401,7 +1401,7 @@ Buffer$1.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
     (this[offset + 3] << 24)
 };
 
-Buffer$1.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
+Buffer$4.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 4, this.length);
 
   return (this[offset] << 24) |
@@ -1410,22 +1410,22 @@ Buffer$1.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
     (this[offset + 3])
 };
 
-Buffer$1.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
+Buffer$4.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 4, this.length);
   return read(this, offset, true, 23, 4)
 };
 
-Buffer$1.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
+Buffer$4.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 4, this.length);
   return read(this, offset, false, 23, 4)
 };
 
-Buffer$1.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
+Buffer$4.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 8, this.length);
   return read(this, offset, true, 52, 8)
 };
 
-Buffer$1.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
+Buffer$4.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
   if (!noAssert) checkOffset(offset, 8, this.length);
   return read(this, offset, false, 52, 8)
 };
@@ -1436,7 +1436,7 @@ function checkInt (buf, value, offset, ext, max, min) {
   if (offset + ext > buf.length) throw new RangeError('Index out of range')
 }
 
-Buffer$1.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
+Buffer$4.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
   value = +value;
   offset = offset | 0;
   byteLength = byteLength | 0;
@@ -1455,7 +1455,7 @@ Buffer$1.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength
   return offset + byteLength
 };
 
-Buffer$1.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
+Buffer$4.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
   value = +value;
   offset = offset | 0;
   byteLength = byteLength | 0;
@@ -1474,11 +1474,11 @@ Buffer$1.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength
   return offset + byteLength
 };
 
-Buffer$1.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
+Buffer$4.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0);
-  if (!Buffer$1.TYPED_ARRAY_SUPPORT) value = Math.floor(value);
+  if (!Buffer$4.TYPED_ARRAY_SUPPORT) value = Math.floor(value);
   this[offset] = (value & 0xff);
   return offset + 1
 };
@@ -1491,11 +1491,11 @@ function objectWriteUInt16 (buf, value, offset, littleEndian) {
   }
 }
 
-Buffer$1.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
+Buffer$4.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0);
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset] = (value & 0xff);
     this[offset + 1] = (value >>> 8);
   } else {
@@ -1504,11 +1504,11 @@ Buffer$1.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAsse
   return offset + 2
 };
 
-Buffer$1.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
+Buffer$4.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0);
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset] = (value >>> 8);
     this[offset + 1] = (value & 0xff);
   } else {
@@ -1524,11 +1524,11 @@ function objectWriteUInt32 (buf, value, offset, littleEndian) {
   }
 }
 
-Buffer$1.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
+Buffer$4.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0);
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset + 3] = (value >>> 24);
     this[offset + 2] = (value >>> 16);
     this[offset + 1] = (value >>> 8);
@@ -1539,11 +1539,11 @@ Buffer$1.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAsse
   return offset + 4
 };
 
-Buffer$1.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
+Buffer$4.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0);
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset] = (value >>> 24);
     this[offset + 1] = (value >>> 16);
     this[offset + 2] = (value >>> 8);
@@ -1554,7 +1554,7 @@ Buffer$1.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAsse
   return offset + 4
 };
 
-Buffer$1.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
+Buffer$4.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) {
@@ -1577,7 +1577,7 @@ Buffer$1.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, 
   return offset + byteLength
 };
 
-Buffer$1.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
+Buffer$4.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) {
@@ -1600,21 +1600,21 @@ Buffer$1.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, 
   return offset + byteLength
 };
 
-Buffer$1.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
+Buffer$4.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80);
-  if (!Buffer$1.TYPED_ARRAY_SUPPORT) value = Math.floor(value);
+  if (!Buffer$4.TYPED_ARRAY_SUPPORT) value = Math.floor(value);
   if (value < 0) value = 0xff + value + 1;
   this[offset] = (value & 0xff);
   return offset + 1
 };
 
-Buffer$1.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
+Buffer$4.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000);
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset] = (value & 0xff);
     this[offset + 1] = (value >>> 8);
   } else {
@@ -1623,11 +1623,11 @@ Buffer$1.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert
   return offset + 2
 };
 
-Buffer$1.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
+Buffer$4.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000);
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset] = (value >>> 8);
     this[offset + 1] = (value & 0xff);
   } else {
@@ -1636,11 +1636,11 @@ Buffer$1.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert
   return offset + 2
 };
 
-Buffer$1.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
+Buffer$4.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset] = (value & 0xff);
     this[offset + 1] = (value >>> 8);
     this[offset + 2] = (value >>> 16);
@@ -1651,12 +1651,12 @@ Buffer$1.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert
   return offset + 4
 };
 
-Buffer$1.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
+Buffer$4.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
   value = +value;
   offset = offset | 0;
   if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
   if (value < 0) value = 0xffffffff + value + 1;
-  if (Buffer$1.TYPED_ARRAY_SUPPORT) {
+  if (Buffer$4.TYPED_ARRAY_SUPPORT) {
     this[offset] = (value >>> 24);
     this[offset + 1] = (value >>> 16);
     this[offset + 2] = (value >>> 8);
@@ -1680,11 +1680,11 @@ function writeFloat (buf, value, offset, littleEndian, noAssert) {
   return offset + 4
 }
 
-Buffer$1.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
+Buffer$4.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
   return writeFloat(this, value, offset, true, noAssert)
 };
 
-Buffer$1.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
+Buffer$4.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
   return writeFloat(this, value, offset, false, noAssert)
 };
 
@@ -1696,16 +1696,16 @@ function writeDouble (buf, value, offset, littleEndian, noAssert) {
   return offset + 8
 }
 
-Buffer$1.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
+Buffer$4.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
   return writeDouble(this, value, offset, true, noAssert)
 };
 
-Buffer$1.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
+Buffer$4.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
   return writeDouble(this, value, offset, false, noAssert)
 };
 
 // copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
-Buffer$1.prototype.copy = function copy (target, targetStart, start, end) {
+Buffer$4.prototype.copy = function copy (target, targetStart, start, end) {
   if (!start) start = 0;
   if (!end && end !== 0) end = this.length;
   if (targetStart >= target.length) targetStart = target.length;
@@ -1737,7 +1737,7 @@ Buffer$1.prototype.copy = function copy (target, targetStart, start, end) {
     for (i = len - 1; i >= 0; --i) {
       target[i + targetStart] = this[i + start];
     }
-  } else if (len < 1000 || !Buffer$1.TYPED_ARRAY_SUPPORT) {
+  } else if (len < 1000 || !Buffer$4.TYPED_ARRAY_SUPPORT) {
     // ascending copy from start
     for (i = 0; i < len; ++i) {
       target[i + targetStart] = this[i + start];
@@ -1757,7 +1757,7 @@ Buffer$1.prototype.copy = function copy (target, targetStart, start, end) {
 //    buffer.fill(number[, offset[, end]])
 //    buffer.fill(buffer[, offset[, end]])
 //    buffer.fill(string[, offset[, end]][, encoding])
-Buffer$1.prototype.fill = function fill (val, start, end, encoding) {
+Buffer$4.prototype.fill = function fill (val, start, end, encoding) {
   // Handle string cases:
   if (typeof val === 'string') {
     if (typeof start === 'string') {
@@ -1777,7 +1777,7 @@ Buffer$1.prototype.fill = function fill (val, start, end, encoding) {
     if (encoding !== undefined && typeof encoding !== 'string') {
       throw new TypeError('encoding must be a string')
     }
-    if (typeof encoding === 'string' && !Buffer$1.isEncoding(encoding)) {
+    if (typeof encoding === 'string' && !Buffer$4.isEncoding(encoding)) {
       throw new TypeError('Unknown encoding: ' + encoding)
     }
   } else if (typeof val === 'number') {
@@ -1806,7 +1806,7 @@ Buffer$1.prototype.fill = function fill (val, start, end, encoding) {
   } else {
     var bytes = internalIsBuffer(val)
       ? val
-      : utf8ToBytes(new Buffer$1(val, encoding).toString());
+      : utf8ToBytes(new Buffer$4(val, encoding).toString());
     var len = bytes.length;
     for (i = 0; i < end - start; ++i) {
       this[i + start] = bytes[i % len];
@@ -1984,7 +1984,7 @@ function isSlowBuffer (obj) {
 
 const bufferEs6 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
-  Buffer: Buffer$1,
+  Buffer: Buffer$4,
   INSPECT_MAX_BYTES,
   SlowBuffer,
   isBuffer: isBuffer$1,
@@ -2488,6 +2488,8 @@ var browser$3 = {exports: {}};
 
 var stream$2 = {exports: {}};
 
+const require$$0$2 = /*@__PURE__*/getAugmentedNamespace(bufferEs6);
+
 /*
   This file is a reduced and adapted version of the main lib/internal/per_context/primordials.js file defined at
 
@@ -2620,11 +2622,9 @@ var primordials = {
 
 var util$4 = {exports: {}};
 
-const require$$0$1 = /*@__PURE__*/getAugmentedNamespace(bufferEs6);
-
 (function (module) {
 
-	const bufferModule = require$$0$1;
+	const bufferModule = require$$0$2;
 
 	const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 	const Blob = globalThis.Blob || bufferModule.Blob;
@@ -2662,6 +2662,7 @@ const require$$0$1 = /*@__PURE__*/getAugmentedNamespace(bufferEs6);
 
 	module.exports = {
 	  AggregateError,
+	  kEmptyObject: Object.freeze({}),
 
 	  once(callback) {
 	    let called = false;
@@ -2825,7 +2826,7 @@ const classRegExp = /^([A-Z][a-z0-9]*)+$/;
 const nodeInternalPrefix = '__node_internal_';
 const codes$1 = {};
 
-function assert$1(value, message) {
+function assert(value, message) {
   if (!value) {
     throw new codes$1.ERR_INTERNAL_ASSERTION(message)
   }
@@ -2845,7 +2846,7 @@ function addNumericalSeparator(val) {
 
 function getMessage(key, msg, args) {
   if (typeof msg === 'function') {
-    assert$1(
+    assert(
       msg.length <= args.length, // Default options do not count.
       `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${msg.length}).`
     );
@@ -2853,7 +2854,7 @@ function getMessage(key, msg, args) {
   }
 
   const expectedLength = (msg.match(/%[dfijoOs]/g) || []).length;
-  assert$1(
+  assert(
     expectedLength === args.length,
     `Code: ${key}; The provided arguments length (${args.length}) does not match the required ones (${expectedLength}).`
   );
@@ -2944,7 +2945,7 @@ E('ERR_ASSERTION', '%s', Error);
 E(
   'ERR_INVALID_ARG_TYPE',
   (name, expected, actual) => {
-    assert$1(typeof name === 'string', "'name' must be a string");
+    assert(typeof name === 'string', "'name' must be a string");
 
     if (!Array.isArray(expected)) {
       expected = [expected];
@@ -2965,14 +2966,14 @@ E(
     const other = [];
 
     for (const value of expected) {
-      assert$1(typeof value === 'string', 'All expected entries have to be of type string');
+      assert(typeof value === 'string', 'All expected entries have to be of type string');
 
       if (kTypes.includes(value)) {
         types.push(value.toLowerCase());
       } else if (classRegExp.test(value)) {
         instances.push(value);
       } else {
-        assert$1(value !== 'object', 'The value "object" should be written as "Object"');
+        assert(value !== 'object', 'The value "object" should be written as "Object"');
         other.push(value);
       }
     } // Special handle `object` in case other instances are allowed to outline
@@ -3120,7 +3121,7 @@ E(
 E(
   'ERR_MISSING_ARGS',
   (...args) => {
-    assert$1(args.length > 0, 'At least one arg needs to be specified');
+    assert(args.length > 0, 'At least one arg needs to be specified');
     let msg;
     const len = args.length;
     args = (Array.isArray(args) ? args : [args]).map((a) => `"${a}"`).join(' or ');
@@ -3149,7 +3150,7 @@ E(
 E(
   'ERR_OUT_OF_RANGE',
   (str, range, input) => {
-    assert$1(range, 'Missing "range" argument');
+    assert(range, 'Missing "range" argument');
     let received;
 
     if (Number.isInteger(input) && Math.abs(input) > 2 ** 32) {
@@ -3194,10 +3195,12 @@ const {
   ArrayPrototypeJoin,
   ArrayPrototypeMap,
   NumberIsInteger: NumberIsInteger$1,
+  NumberIsNaN: NumberIsNaN$1,
   NumberMAX_SAFE_INTEGER,
   NumberMIN_SAFE_INTEGER,
   NumberParseInt,
-  RegExpPrototypeTest,
+  ObjectPrototypeHasOwnProperty,
+  RegExpPrototypeExec,
   String: String$1,
   StringPrototypeToUpperCase,
   StringPrototypeTrim
@@ -3213,10 +3216,18 @@ const { normalizeEncoding } = util$4.exports;
 const { isAsyncFunction, isArrayBufferView } = util$4.exports.types;
 
 const signals = {};
+/**
+ * @param {*} value
+ * @returns {boolean}
+ */
 
 function isInt32(value) {
   return value === (value | 0)
 }
+/**
+ * @param {*} value
+ * @returns {boolean}
+ */
 
 function isUint32(value) {
   return value === value >>> 0
@@ -3243,67 +3254,131 @@ function parseFileMode(value, name, def) {
   }
 
   if (typeof value === 'string') {
-    if (!RegExpPrototypeTest(octalReg, value)) {
+    if (RegExpPrototypeExec(octalReg, value) === null) {
       throw new ERR_INVALID_ARG_VALUE$2(name, value, modeDesc)
     }
 
     value = NumberParseInt(value, 8);
   }
 
-  validateInt32(value, name, 0, 2 ** 32 - 1);
+  validateUint32(value, name);
   return value
 }
+/**
+ * @callback validateInteger
+ * @param {*} value
+ * @param {string} name
+ * @param {number} [min]
+ * @param {number} [max]
+ * @returns {asserts value is number}
+ */
+
+/** @type {validateInteger} */
 
 const validateInteger$1 = hideStackFrames((value, name, min = NumberMIN_SAFE_INTEGER, max = NumberMAX_SAFE_INTEGER) => {
   if (typeof value !== 'number') throw new ERR_INVALID_ARG_TYPE$4(name, 'number', value)
   if (!NumberIsInteger$1(value)) throw new ERR_OUT_OF_RANGE$1(name, 'an integer', value)
   if (value < min || value > max) throw new ERR_OUT_OF_RANGE$1(name, `>= ${min} && <= ${max}`, value)
 });
+/**
+ * @callback validateInt32
+ * @param {*} value
+ * @param {string} name
+ * @param {number} [min]
+ * @param {number} [max]
+ * @returns {asserts value is number}
+ */
+
+/** @type {validateInt32} */
+
 const validateInt32 = hideStackFrames((value, name, min = -2147483648, max = 2147483647) => {
   // The defaults for min and max correspond to the limits of 32-bit integers.
   if (typeof value !== 'number') {
     throw new ERR_INVALID_ARG_TYPE$4(name, 'number', value)
   }
 
-  if (!isInt32(value)) {
-    if (!NumberIsInteger$1(value)) {
-      throw new ERR_OUT_OF_RANGE$1(name, 'an integer', value)
-    }
-
-    throw new ERR_OUT_OF_RANGE$1(name, `>= ${min} && <= ${max}`, value)
+  if (!NumberIsInteger$1(value)) {
+    throw new ERR_OUT_OF_RANGE$1(name, 'an integer', value)
   }
 
   if (value < min || value > max) {
     throw new ERR_OUT_OF_RANGE$1(name, `>= ${min} && <= ${max}`, value)
   }
 });
-const validateUint32 = hideStackFrames((value, name, positive) => {
+/**
+ * @callback validateUint32
+ * @param {*} value
+ * @param {string} name
+ * @param {number|boolean} [positive=false]
+ * @returns {asserts value is number}
+ */
+
+/** @type {validateUint32} */
+
+const validateUint32 = hideStackFrames((value, name, positive = false) => {
   if (typeof value !== 'number') {
     throw new ERR_INVALID_ARG_TYPE$4(name, 'number', value)
   }
 
-  if (!isUint32(value)) {
-    if (!NumberIsInteger$1(value)) {
-      throw new ERR_OUT_OF_RANGE$1(name, 'an integer', value)
-    }
-
-    const min = positive ? 1 : 0; // 2 ** 32 === 4294967296
-
-    throw new ERR_OUT_OF_RANGE$1(name, `>= ${min} && < 4294967296`, value)
+  if (!NumberIsInteger$1(value)) {
+    throw new ERR_OUT_OF_RANGE$1(name, 'an integer', value)
   }
 
-  if (positive && value === 0) {
-    throw new ERR_OUT_OF_RANGE$1(name, '>= 1 && < 4294967296', value)
+  const min = positive ? 1 : 0; // 2 ** 32 === 4294967296
+
+  const max = 4_294_967_295;
+
+  if (value < min || value > max) {
+    throw new ERR_OUT_OF_RANGE$1(name, `>= ${min} && <= ${max}`, value)
   }
 });
+/**
+ * @callback validateString
+ * @param {*} value
+ * @param {string} name
+ * @returns {asserts value is string}
+ */
+
+/** @type {validateString} */
 
 function validateString(value, name) {
   if (typeof value !== 'string') throw new ERR_INVALID_ARG_TYPE$4(name, 'string', value)
 }
+/**
+ * @callback validateNumber
+ * @param {*} value
+ * @param {string} name
+ * @param {number} [min]
+ * @param {number} [max]
+ * @returns {asserts value is number}
+ */
 
-function validateNumber(value, name) {
+/** @type {validateNumber} */
+
+function validateNumber(value, name, min = undefined, max) {
   if (typeof value !== 'number') throw new ERR_INVALID_ARG_TYPE$4(name, 'number', value)
+
+  if (
+    (min != null && value < min) ||
+    (max != null && value > max) ||
+    ((min != null || max != null) && NumberIsNaN$1(value))
+  ) {
+    throw new ERR_OUT_OF_RANGE$1(
+      name,
+      `${min != null ? `>= ${min}` : ''}${min != null && max != null ? ' && ' : ''}${max != null ? `<= ${max}` : ''}`,
+      value
+    )
+  }
 }
+/**
+ * @callback validateOneOf
+ * @template T
+ * @param {T} value
+ * @param {string} name
+ * @param {T[]} oneOf
+ */
+
+/** @type {validateOneOf} */
 
 const validateOneOf = hideStackFrames((value, name, oneOf) => {
   if (!ArrayPrototypeIncludes(oneOf, value)) {
@@ -3315,12 +3390,25 @@ const validateOneOf = hideStackFrames((value, name, oneOf) => {
     throw new ERR_INVALID_ARG_VALUE$2(name, value, reason)
   }
 });
+/**
+ * @callback validateBoolean
+ * @param {*} value
+ * @param {string} name
+ * @returns {asserts value is boolean}
+ */
+
+/** @type {validateBoolean} */
 
 function validateBoolean(value, name) {
   if (typeof value !== 'boolean') throw new ERR_INVALID_ARG_TYPE$4(name, 'boolean', value)
 }
+
+function getOwnPropertyValueOrDefault(options, key, defaultValue) {
+  return options == null || !ObjectPrototypeHasOwnProperty(options, key) ? defaultValue : options[key]
+}
 /**
- * @param {unknown} value
+ * @callback validateObject
+ * @param {*} value
  * @param {string} name
  * @param {{
  *   allowArray?: boolean,
@@ -3329,11 +3417,12 @@ function validateBoolean(value, name) {
  * }} [options]
  */
 
-const validateObject$2 = hideStackFrames((value, name, options) => {
-  const useDefaultOptions = options == null;
-  const allowArray = useDefaultOptions ? false : options.allowArray;
-  const allowFunction = useDefaultOptions ? false : options.allowFunction;
-  const nullable = useDefaultOptions ? false : options.nullable;
+/** @type {validateObject} */
+
+const validateObject$2 = hideStackFrames((value, name, options = null) => {
+  const allowArray = getOwnPropertyValueOrDefault(options, 'allowArray', false);
+  const allowFunction = getOwnPropertyValueOrDefault(options, 'allowFunction', false);
+  const nullable = getOwnPropertyValueOrDefault(options, 'nullable', false);
 
   if (
     (!nullable && value === null) ||
@@ -3343,6 +3432,16 @@ const validateObject$2 = hideStackFrames((value, name, options) => {
     throw new ERR_INVALID_ARG_TYPE$4(name, 'Object', value)
   }
 });
+/**
+ * @callback validateArray
+ * @param {*} value
+ * @param {string} name
+ * @param {number} [minLength]
+ * @returns {asserts value is any[]}
+ */
+
+/** @type {validateArray} */
+
 const validateArray = hideStackFrames((value, name, minLength = 0) => {
   if (!ArrayIsArray$2(value)) {
     throw new ERR_INVALID_ARG_TYPE$4(name, 'Array', value)
@@ -3352,7 +3451,13 @@ const validateArray = hideStackFrames((value, name, minLength = 0) => {
     const reason = `must be longer than ${minLength}`;
     throw new ERR_INVALID_ARG_VALUE$2(name, value, reason)
   }
-});
+}); // eslint-disable-next-line jsdoc/require-returns-check
+
+/**
+ * @param {*} signal
+ * @param {string} [name='signal']
+ * @returns {asserts signal is keyof signals}
+ */
 
 function validateSignalName(signal, name = 'signal') {
   validateString(signal, name);
@@ -3365,12 +3470,24 @@ function validateSignalName(signal, name = 'signal') {
     throw new ERR_UNKNOWN_SIGNAL(signal)
   }
 }
+/**
+ * @callback validateBuffer
+ * @param {*} buffer
+ * @param {string} [name='buffer']
+ * @returns {asserts buffer is ArrayBufferView}
+ */
+
+/** @type {validateBuffer} */
 
 const validateBuffer = hideStackFrames((buffer, name = 'buffer') => {
   if (!isArrayBufferView(buffer)) {
     throw new ERR_INVALID_ARG_TYPE$4(name, ['Buffer', 'TypedArray', 'DataView'], buffer)
   }
 });
+/**
+ * @param {string} data
+ * @param {string} encoding
+ */
 
 function validateEncoding(data, encoding) {
   const normalizedEncoding = normalizeEncoding(encoding);
@@ -3379,8 +3496,15 @@ function validateEncoding(data, encoding) {
   if (normalizedEncoding === 'hex' && length % 2 !== 0) {
     throw new ERR_INVALID_ARG_VALUE$2('encoding', encoding, `is invalid for data of length ${length}`)
   }
-} // Check that the port number is not NaN when coerced to a number,
-// is an integer and that it falls within the legal range of port numbers.
+}
+/**
+ * Check that the port number is not NaN when coerced to a number,
+ * is an integer and that it falls within the legal range of port numbers.
+ * @param {*} port
+ * @param {string} [name='Port']
+ * @param {boolean} [allowZero=true]
+ * @returns {number}
+ */
 
 function validatePort(port, name = 'Port', allowZero = true) {
   if (
@@ -3395,21 +3519,68 @@ function validatePort(port, name = 'Port', allowZero = true) {
 
   return port | 0
 }
+/**
+ * @callback validateAbortSignal
+ * @param {*} signal
+ * @param {string} name
+ */
+
+/** @type {validateAbortSignal} */
 
 const validateAbortSignal$3 = hideStackFrames((signal, name) => {
   if (signal !== undefined && (signal === null || typeof signal !== 'object' || !('aborted' in signal))) {
     throw new ERR_INVALID_ARG_TYPE$4(name, 'AbortSignal', signal)
   }
 });
+/**
+ * @callback validateFunction
+ * @param {*} value
+ * @param {string} name
+ * @returns {asserts value is Function}
+ */
+
+/** @type {validateFunction} */
+
 const validateFunction$2 = hideStackFrames((value, name) => {
   if (typeof value !== 'function') throw new ERR_INVALID_ARG_TYPE$4(name, 'Function', value)
 });
+/**
+ * @callback validatePlainFunction
+ * @param {*} value
+ * @param {string} name
+ * @returns {asserts value is Function}
+ */
+
+/** @type {validatePlainFunction} */
+
 const validatePlainFunction = hideStackFrames((value, name) => {
   if (typeof value !== 'function' || isAsyncFunction(value)) throw new ERR_INVALID_ARG_TYPE$4(name, 'Function', value)
 });
+/**
+ * @callback validateUndefined
+ * @param {*} value
+ * @param {string} name
+ * @returns {asserts value is undefined}
+ */
+
+/** @type {validateUndefined} */
+
 const validateUndefined = hideStackFrames((value, name) => {
   if (value !== undefined) throw new ERR_INVALID_ARG_TYPE$4(name, 'undefined', value)
 });
+/**
+ * @template T
+ * @param {T} value
+ * @param {string} name
+ * @param {T[]} union
+ */
+
+function validateUnion(value, name, union) {
+  if (!ArrayPrototypeIncludes(union, value)) {
+    throw new ERR_INVALID_ARG_TYPE$4(name, `('${ArrayPrototypeJoin(union, '|')}')`, value)
+  }
+}
+
 var validators = {
   isInt32,
   isUint32,
@@ -3430,8 +3601,11 @@ var validators = {
   validateString,
   validateUint32,
   validateUndefined,
+  validateUnion,
   validateAbortSignal: validateAbortSignal$3
 };
+
+var endOfStream = {exports: {}};
 
 // shim for using process in browser
 // based off https://github.com/defunctzombie/node-process/blob/master/browser.js
@@ -3596,19 +3770,19 @@ function chdir (dir) {
 }function umask() { return 0; }
 
 // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
-var performance$1 = global$1.performance || {};
+var performance = global$1.performance || {};
 var performanceNow =
-  performance$1.now        ||
-  performance$1.mozNow     ||
-  performance$1.msNow      ||
-  performance$1.oNow       ||
-  performance$1.webkitNow  ||
+  performance.now        ||
+  performance.mozNow     ||
+  performance.msNow      ||
+  performance.oNow       ||
+  performance.webkitNow  ||
   function(){ return (new Date()).getTime() };
 
 // generate timestamp or delta
 // see http://nodejs.org/api/process.html#process_process_hrtime
 function hrtime(previousTimestamp){
-  var clocktime = performanceNow.call(performance$1)*1e-3;
+  var clocktime = performanceNow.call(performance)*1e-3;
   var seconds = Math.floor(clocktime);
   var nanoseconds = Math.floor((clocktime%1)*1e9);
   if (previousTimestamp) {
@@ -3655,9 +3829,37 @@ var browser$1 = {
   uptime: uptime
 };
 
-const process = browser$1;
+const process$4 = browser$1;
 
-var endOfStream = {exports: {}};
+const processEs6 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: process$4,
+  addListener,
+  argv,
+  binding,
+  browser,
+  chdir,
+  config,
+  cwd,
+  emit: emit$2,
+  env,
+  hrtime,
+  nextTick: nextTick$1,
+  off,
+  on,
+  once: once$2,
+  platform,
+  release,
+  removeAllListeners,
+  removeListener,
+  title,
+  umask,
+  uptime,
+  version: version$1,
+  versions
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const require$$0$1 = /*@__PURE__*/getAugmentedNamespace(processEs6);
 
 const { Symbol: Symbol$4, SymbolAsyncIterator: SymbolAsyncIterator$2, SymbolIterator: SymbolIterator$2 } = primordials;
 
@@ -3986,11 +4188,19 @@ var utils$1 = {
   willEmitClose
 };
 
+/* replacement start */
+
+const process$3 = require$$0$1
+/* replacement end */
+// Ported from https://github.com/mafintosh/end-of-stream with
+// permission from the author, Mathias Buus (@mafintosh).
+
+;
 const { AbortError: AbortError$4, codes } = errors;
 
-const { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE$3, ERR_STREAM_PREMATURE_CLOSE } = codes;
+const { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE$3, ERR_STREAM_PREMATURE_CLOSE: ERR_STREAM_PREMATURE_CLOSE$1 } = codes;
 
-const { once: once$1 } = util$4.exports;
+const { kEmptyObject, once: once$1 } = util$4.exports;
 
 const { validateAbortSignal: validateAbortSignal$2, validateFunction: validateFunction$1, validateObject: validateObject$1 } = validators;
 
@@ -4021,9 +4231,9 @@ function eos$2(stream, options, callback) {
 
   if (arguments.length === 2) {
     callback = options;
-    options = {};
+    options = kEmptyObject;
   } else if (options == null) {
-    options = {};
+    options = kEmptyObject;
   } else {
     validateObject$1(options, 'options');
   }
@@ -4113,11 +4323,11 @@ function eos$2(stream, options, callback) {
     }
 
     if (readable && !readableFinished && isReadableNodeStream$1(stream, true)) {
-      if (!isReadableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE())
+      if (!isReadableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE$1())
     }
 
     if (writable && !writableFinished) {
-      if (!isWritableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE())
+      if (!isWritableFinished(stream, false)) return callback.call(stream, new ERR_STREAM_PREMATURE_CLOSE$1())
     }
 
     callback.call(stream);
@@ -4159,28 +4369,28 @@ function eos$2(stream, options, callback) {
   stream.on('close', onclose);
 
   if (closed) {
-    process.nextTick(onclose);
+    process$3.nextTick(onclose);
   } else if (
     (wState !== null && wState !== undefined && wState.errorEmitted) ||
     (rState !== null && rState !== undefined && rState.errorEmitted)
   ) {
     if (!willEmitClose) {
-      process.nextTick(onclose);
+      process$3.nextTick(onclose);
     }
   } else if (
     !readable &&
     (!willEmitClose || isReadable$2(stream)) &&
     (writableFinished || isWritable$1(stream) === false)
   ) {
-    process.nextTick(onclose);
+    process$3.nextTick(onclose);
   } else if (
     !writable &&
     (!willEmitClose || isWritable$1(stream)) &&
     (readableFinished || isReadable$2(stream) === false)
   ) {
-    process.nextTick(onclose);
+    process$3.nextTick(onclose);
   } else if (rState && stream.req && stream.aborted) {
-    process.nextTick(onclose);
+    process$3.nextTick(onclose);
   }
 
   const cleanup = () => {
@@ -4212,7 +4422,7 @@ function eos$2(stream, options, callback) {
     };
 
     if (options.signal.aborted) {
-      process.nextTick(abort);
+      process$3.nextTick(abort);
     } else {
       const originalCallback = callback;
       callback = once$1((...args) => {
@@ -4261,7 +4471,7 @@ const {
   NumberIsNaN,
   Promise: Promise$3,
   PromiseReject,
-  PromisePrototypeCatch,
+  PromisePrototypeThen: PromisePrototypeThen$1,
   Symbol: Symbol$3
 } = primordials;
 
@@ -4368,7 +4578,7 @@ function map(fn, options) {
         queue.push(kEof);
       } catch (err) {
         const val = PromiseReject(err);
-        PromisePrototypeCatch(val, onDone);
+        PromisePrototypeThen$1(val, undefined, onDone);
         queue.push(val);
       } finally {
         var _options$signal3;
@@ -4464,7 +4674,6 @@ function asIndexedPairs(options = undefined) {
 }
 
 async function some(fn, options = undefined) {
-  // eslint-disable-next-line no-unused-vars
   for await (const unused of filter.call(this, fn, options)) {
     return true
   }
@@ -4775,6 +4984,11 @@ operators.promiseReturningOperators = {
   find
 };
 
+/* replacement start */
+
+const process$2 = require$$0$1;
+/* replacement end */
+
 const {
   aggregateTwoErrors: aggregateTwoErrors$1,
   codes: { ERR_MULTIPLE_CALLBACK },
@@ -4866,9 +5080,9 @@ function _destroy(self, err, cb) {
     }
 
     if (err) {
-      process.nextTick(emitErrorCloseNT, self, err);
+      process$2.nextTick(emitErrorCloseNT, self, err);
     } else {
-      process.nextTick(emitCloseNT, self);
+      process$2.nextTick(emitCloseNT, self);
     }
   }
 
@@ -4978,7 +5192,7 @@ function errorOrDestroy(stream, err, sync) {
     }
 
     if (sync) {
-      process.nextTick(emitErrorNT, stream, err);
+      process$2.nextTick(emitErrorNT, stream, err);
     } else {
       emitErrorNT(stream, err);
     }
@@ -5008,7 +5222,7 @@ function construct(stream, cb) {
     return
   }
 
-  process.nextTick(constructNT, stream);
+  process$2.nextTick(constructNT, stream);
 }
 
 function constructNT(stream) {
@@ -5038,7 +5252,7 @@ function constructNT(stream) {
     } else if (err) {
       errorOrDestroy(stream, err, true);
     } else {
-      process.nextTick(emitConstructNT, stream);
+      process$2.nextTick(emitConstructNT, stream);
     }
   }
 
@@ -5063,7 +5277,7 @@ function emitCloseLegacy(stream) {
 
 function emitErrorCloseLegacy(stream, err) {
   stream.emit('error', err);
-  process.nextTick(emitCloseLegacy, stream);
+  process$2.nextTick(emitCloseLegacy, stream);
 } // Normalize destroy for legacy.
 
 function destroyer$3(stream, err) {
@@ -5088,9 +5302,9 @@ function destroyer$3(stream, err) {
     // TODO: Don't lose err?
     stream.close();
   } else if (err) {
-    process.nextTick(emitErrorCloseLegacy, stream);
+    process$2.nextTick(emitErrorCloseLegacy, stream, err);
   } else {
-    process.nextTick(emitCloseLegacy, stream);
+    process$2.nextTick(emitCloseLegacy, stream);
   }
 
   if (!stream.destroyed) {
@@ -5265,6 +5479,8 @@ var addAbortSignal$1 = {exports: {}};
 
 const { StringPrototypeSlice, SymbolIterator: SymbolIterator$1, TypedArrayPrototypeSet, Uint8Array: Uint8Array$1 } = primordials;
 
+const { Buffer: Buffer$3 } = require$$0$2;
+
 const { inspect: inspect$1 } = util$4.exports;
 
 var buffer_list = class BufferList {
@@ -5320,8 +5536,8 @@ var buffer_list = class BufferList {
   }
 
   concat(n) {
-    if (this.length === 0) return Buffer$1.alloc(0)
-    const ret = Buffer$1.allocUnsafe(n >>> 0);
+    if (this.length === 0) return Buffer$3.alloc(0)
+    const ret = Buffer$3.allocUnsafe(n >>> 0);
     let p = this.head;
     let i = 0;
 
@@ -5396,7 +5612,7 @@ var buffer_list = class BufferList {
   } // Consumes a specified amount of bytes from the buffered data.
 
   _getBuffer(n) {
-    const ret = Buffer$1.allocUnsafe(n);
+    const ret = Buffer$3.allocUnsafe(n);
     const retLen = n;
     let p = this.head;
     let c = 0;
@@ -5452,7 +5668,7 @@ function getDefaultHighWaterMark(objectMode) {
   return objectMode ? 16 : 16 * 1024
 }
 
-function getHighWaterMark(state, options, duplexKey, isDuplex) {
+function getHighWaterMark$1(state, options, duplexKey, isDuplex) {
   const hwm = highWaterMarkFrom(options, isDuplex, duplexKey);
 
   if (hwm != null) {
@@ -5468,12 +5684,12 @@ function getHighWaterMark(state, options, duplexKey, isDuplex) {
 }
 
 var state = {
-  getHighWaterMark,
+  getHighWaterMark: getHighWaterMark$1,
   getDefaultHighWaterMark
 };
 
 // Copyright Joyent, Inc. and other Node contributors.
-var isBufferEncoding = Buffer$1.isEncoding
+var isBufferEncoding = Buffer$4.isEncoding
   || function(encoding) {
        switch (encoding && encoding.toLowerCase()) {
          case 'hex': case 'utf8': case 'utf-8': case 'ascii': case 'binary': case 'base64': case 'ucs2': case 'ucs-2': case 'utf16le': case 'utf-16le': case 'raw': return true;
@@ -5522,7 +5738,7 @@ function StringDecoder(encoding) {
 
   // Enough space to store all bytes of a single character. UTF-8 needs 4
   // bytes, but CESU-8 may require up to 6 (3 bytes per surrogate).
-  this.charBuffer = new Buffer$1(6);
+  this.charBuffer = new Buffer$4(6);
   // Number of bytes received for the current incomplete multi-byte character.
   this.charReceived = 0;
   // Number of bytes expected for the current incomplete multi-byte character.
@@ -5676,16 +5892,23 @@ const stringDecoder = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePrope
   StringDecoder
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const require$$11 = /*@__PURE__*/getAugmentedNamespace(stringDecoder);
+const require$$13 = /*@__PURE__*/getAugmentedNamespace(stringDecoder);
+
+/* replacement start */
+
+const process$1 = require$$0$1;
+/* replacement end */
 
 const { PromisePrototypeThen, SymbolAsyncIterator: SymbolAsyncIterator$1, SymbolIterator } = primordials;
+
+const { Buffer: Buffer$2 } = require$$0$2;
 
 const { ERR_INVALID_ARG_TYPE: ERR_INVALID_ARG_TYPE$1, ERR_STREAM_NULL_VALUES } = errors.codes;
 
 function from(Readable, iterable, opts) {
   let iterator;
 
-  if (typeof iterable === 'string' || iterable instanceof Buffer$1) {
+  if (typeof iterable === 'string' || iterable instanceof Buffer$2) {
     return new Readable({
       objectMode: true,
       ...opts,
@@ -5729,8 +5952,8 @@ function from(Readable, iterable, opts) {
   readable._destroy = function (error, cb) {
     PromisePrototypeThen(
       close(error),
-      () => process.nextTick(cb, error), // nextTick is here in case cb throws
-      (e) => process.nextTick(cb, e || error)
+      () => process$1.nextTick(cb, error), // nextTick is here in case cb throws
+      (e) => process$1.nextTick(cb, e || error)
     );
   };
 
@@ -5785,13 +6008,38 @@ function from(Readable, iterable, opts) {
 
 var from_1 = from;
 
+/* replacement start */
+
 var readable;
 var hasRequiredReadable;
 
 function requireReadable () {
 	if (hasRequiredReadable) return readable;
 	hasRequiredReadable = 1;
+	const process = require$$0$1
+	/* replacement end */
+	// Copyright Joyent, Inc. and other Node contributors.
+	//
+	// Permission is hereby granted, free of charge, to any person obtaining a
+	// copy of this software and associated documentation files (the
+	// "Software"), to deal in the Software without restriction, including
+	// without limitation the rights to use, copy, modify, merge, publish,
+	// distribute, sublicense, and/or sell copies of the Software, and to permit
+	// persons to whom the Software is furnished to do so, subject to the
+	// following conditions:
+	//
+	// The above copyright notice and this permission notice shall be included
+	// in all copies or substantial portions of the Software.
+	//
+	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+	// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+	// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+	// USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+	;
 	const {
 	  ArrayPrototypeIndexOf,
 	  NumberIsInteger,
@@ -5812,6 +6060,8 @@ function requireReadable () {
 	const { EventEmitter: EE } = require$$5;
 
 	const { Stream, prependListener } = legacy;
+
+	const { Buffer } = require$$0$2;
 
 	const { addAbortSignal } = addAbortSignal$1.exports;
 
@@ -5842,7 +6092,7 @@ function requireReadable () {
 
 	const kPaused = Symbol('kPaused');
 
-	const { StringDecoder } = require$$11;
+	const { StringDecoder } = require$$13;
 
 	const from = from_1;
 
@@ -5992,13 +6242,13 @@ function requireReadable () {
 	        if (addToFront && state.encoding) {
 	          // When unshifting, if state.encoding is set, we have to save
 	          // the string in the BufferList with the state encoding.
-	          chunk = Buffer$1.from(chunk, encoding).toString(state.encoding);
+	          chunk = Buffer.from(chunk, encoding).toString(state.encoding);
 	        } else {
-	          chunk = Buffer$1.from(chunk, encoding);
+	          chunk = Buffer.from(chunk, encoding);
 	          encoding = '';
 	        }
 	      }
-	    } else if (chunk instanceof Buffer$1) {
+	    } else if (chunk instanceof Buffer) {
 	      encoding = '';
 	    } else if (Stream._isUint8Array(chunk)) {
 	      chunk = Stream._uint8ArrayToBuffer(chunk);
@@ -6846,6 +7096,8 @@ function requireReadable () {
 
 	ObjectDefineProperties(Readable.prototype, {
 	  readable: {
+	    __proto__: null,
+
 	    get() {
 	      const r = this._readableState; // r.readable === false means that this is part of a Duplex stream
 	      // where the readable side was disabled upon construction.
@@ -6863,12 +7115,14 @@ function requireReadable () {
 	    }
 	  },
 	  readableDidRead: {
+	    __proto__: null,
 	    enumerable: false,
 	    get: function () {
 	      return this._readableState.dataEmitted
 	    }
 	  },
 	  readableAborted: {
+	    __proto__: null,
 	    enumerable: false,
 	    get: function () {
 	      return !!(
@@ -6879,18 +7133,21 @@ function requireReadable () {
 	    }
 	  },
 	  readableHighWaterMark: {
+	    __proto__: null,
 	    enumerable: false,
 	    get: function () {
 	      return this._readableState.highWaterMark
 	    }
 	  },
 	  readableBuffer: {
+	    __proto__: null,
 	    enumerable: false,
 	    get: function () {
 	      return this._readableState && this._readableState.buffer
 	    }
 	  },
 	  readableFlowing: {
+	    __proto__: null,
 	    enumerable: false,
 	    get: function () {
 	      return this._readableState.flowing
@@ -6902,6 +7159,7 @@ function requireReadable () {
 	    }
 	  },
 	  readableLength: {
+	    __proto__: null,
 	    enumerable: false,
 
 	    get() {
@@ -6909,6 +7167,7 @@ function requireReadable () {
 	    }
 	  },
 	  readableObjectMode: {
+	    __proto__: null,
 	    enumerable: false,
 
 	    get() {
@@ -6916,6 +7175,7 @@ function requireReadable () {
 	    }
 	  },
 	  readableEncoding: {
+	    __proto__: null,
 	    enumerable: false,
 
 	    get() {
@@ -6923,6 +7183,7 @@ function requireReadable () {
 	    }
 	  },
 	  errored: {
+	    __proto__: null,
 	    enumerable: false,
 
 	    get() {
@@ -6930,11 +7191,14 @@ function requireReadable () {
 	    }
 	  },
 	  closed: {
+	    __proto__: null,
+
 	    get() {
 	      return this._readableState ? this._readableState.closed : false
 	    }
 	  },
 	  destroyed: {
+	    __proto__: null,
 	    enumerable: false,
 
 	    get() {
@@ -6953,6 +7217,7 @@ function requireReadable () {
 	    }
 	  },
 	  readableEnded: {
+	    __proto__: null,
 	    enumerable: false,
 
 	    get() {
@@ -6963,12 +7228,16 @@ function requireReadable () {
 	ObjectDefineProperties(ReadableState.prototype, {
 	  // Legacy getter for `pipesCount`.
 	  pipesCount: {
+	    __proto__: null,
+
 	    get() {
 	      return this.pipes.length
 	    }
 	  },
 	  // Legacy property for `paused`.
 	  paused: {
+	    __proto__: null,
+
 	    get() {
 	      return this[kPaused] !== false
 	    },
@@ -7061,8 +7330,8 @@ function requireReadable () {
 	  return lazyWebStreams().newStreamReadableFromReadableStream(readableStream, options)
 	};
 
-	Readable.toWeb = function (streamReadable) {
-	  return lazyWebStreams().newReadableStreamFromStreamReadable(streamReadable)
+	Readable.toWeb = function (streamReadable, options) {
+	  return lazyWebStreams().newReadableStreamFromStreamReadable(streamReadable, options)
 	};
 
 	Readable.wrap = function (src, options) {
@@ -7087,13 +7356,41 @@ function requireReadable () {
 	return readable;
 }
 
+/* replacement start */
+
 var writable;
 var hasRequiredWritable;
 
 function requireWritable () {
 	if (hasRequiredWritable) return writable;
 	hasRequiredWritable = 1;
+	const process = require$$0$1
+	/* replacement end */
+	// Copyright Joyent, Inc. and other Node contributors.
+	//
+	// Permission is hereby granted, free of charge, to any person obtaining a
+	// copy of this software and associated documentation files (the
+	// "Software"), to deal in the Software without restriction, including
+	// without limitation the rights to use, copy, modify, merge, publish,
+	// distribute, sublicense, and/or sell copies of the Software, and to permit
+	// persons to whom the Software is furnished to do so, subject to the
+	// following conditions:
+	//
+	// The above copyright notice and this permission notice shall be included
+	// in all copies or substantial portions of the Software.
+	//
+	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+	// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+	// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+	// USE OR OTHER DEALINGS IN THE SOFTWARE.
+	// A bit simpler than readable streams.
+	// Implement an async ._write(chunk, encoding, cb), and it'll handle all
+	// the drain event emission and buffering.
 
+	;
 	const {
 	  ArrayPrototypeSlice,
 	  Error,
@@ -7112,6 +7409,8 @@ function requireWritable () {
 	const { EventEmitter: EE } = require$$5;
 
 	const Stream = legacy.Stream;
+
+	const { Buffer } = require$$0$2;
 
 	const destroyImpl = destroy_1;
 
@@ -7245,6 +7544,8 @@ function requireWritable () {
 	};
 
 	ObjectDefineProperty(WritableState.prototype, 'bufferedRequestCount', {
+	  __proto__: null,
+
 	  get() {
 	    return this.buffered.length - this.bufferedIndex
 	  }
@@ -7286,6 +7587,7 @@ function requireWritable () {
 	}
 
 	ObjectDefineProperty(Writable, SymbolHasInstance, {
+	  __proto__: null,
 	  value: function (object) {
 	    if (FunctionPrototypeSymbolHasInstance(this, object)) return true
 	    if (this !== Writable) return false
@@ -7305,7 +7607,7 @@ function requireWritable () {
 	    encoding = state.defaultEncoding;
 	  } else {
 	    if (!encoding) encoding = state.defaultEncoding;
-	    else if (encoding !== 'buffer' && !Buffer$1.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding)
+	    else if (encoding !== 'buffer' && !Buffer.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding)
 	    if (typeof cb !== 'function') cb = nop;
 	  }
 
@@ -7314,10 +7616,10 @@ function requireWritable () {
 	  } else if (!state.objectMode) {
 	    if (typeof chunk === 'string') {
 	      if (state.decodeStrings !== false) {
-	        chunk = Buffer$1.from(chunk, encoding);
+	        chunk = Buffer.from(chunk, encoding);
 	        encoding = 'buffer';
 	      }
-	    } else if (chunk instanceof Buffer$1) {
+	    } else if (chunk instanceof Buffer) {
 	      encoding = 'buffer';
 	    } else if (Stream._isUint8Array(chunk)) {
 	      chunk = Stream._uint8ArrayToBuffer(chunk);
@@ -7365,7 +7667,7 @@ function requireWritable () {
 	Writable.prototype.setDefaultEncoding = function setDefaultEncoding(encoding) {
 	  // node::ParseEncoding() requires lower case.
 	  if (typeof encoding === 'string') encoding = StringPrototypeToLowerCase(encoding);
-	  if (!Buffer$1.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding)
+	  if (!Buffer.isEncoding(encoding)) throw new ERR_UNKNOWN_ENCODING(encoding)
 	  this._writableState.defaultEncoding = encoding;
 	  return this
 	}; // If we're already writing something, then just put this
@@ -7797,11 +8099,15 @@ function requireWritable () {
 
 	ObjectDefineProperties(Writable.prototype, {
 	  closed: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState ? this._writableState.closed : false
 	    }
 	  },
 	  destroyed: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState ? this._writableState.destroyed : false
 	    },
@@ -7814,6 +8120,8 @@ function requireWritable () {
 	    }
 	  },
 	  writable: {
+	    __proto__: null,
+
 	    get() {
 	      const w = this._writableState; // w.writable === false means that this is part of a Duplex stream
 	      // where the writable side was disabled upon construction.
@@ -7831,26 +8139,36 @@ function requireWritable () {
 	    }
 	  },
 	  writableFinished: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState ? this._writableState.finished : false
 	    }
 	  },
 	  writableObjectMode: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState ? this._writableState.objectMode : false
 	    }
 	  },
 	  writableBuffer: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState && this._writableState.getBuffer()
 	    }
 	  },
 	  writableEnded: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState ? this._writableState.ending : false
 	    }
 	  },
 	  writableNeedDrain: {
+	    __proto__: null,
+
 	    get() {
 	      const wState = this._writableState;
 	      if (!wState) return false
@@ -7858,21 +8176,28 @@ function requireWritable () {
 	    }
 	  },
 	  writableHighWaterMark: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState && this._writableState.highWaterMark
 	    }
 	  },
 	  writableCorked: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState ? this._writableState.corked : 0
 	    }
 	  },
 	  writableLength: {
+	    __proto__: null,
+
 	    get() {
 	      return this._writableState && this._writableState.length
 	    }
 	  },
 	  errored: {
+	    __proto__: null,
 	    enumerable: false,
 
 	    get() {
@@ -7880,6 +8205,7 @@ function requireWritable () {
 	    }
 	  },
 	  writableAborted: {
+	    __proto__: null,
 	    enumerable: false,
 	    get: function () {
 	      return !!(
@@ -7930,14 +8256,19 @@ function requireWritable () {
 	return writable;
 }
 
+/* replacement start */
+
 var duplexify;
 var hasRequiredDuplexify;
 
 function requireDuplexify () {
 	if (hasRequiredDuplexify) return duplexify;
 	hasRequiredDuplexify = 1;
+	const process = require$$0$1
+	/* replacement end */
 
-	const bufferModule = require$$0$1;
+	;
+	const bufferModule = require$$0$2;
 
 	const {
 	  isReadable,
@@ -8416,16 +8747,45 @@ function requireDuplex () {
 	}
 
 	ObjectDefineProperties(Duplex.prototype, {
-	  writable: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writable'),
-	  writableHighWaterMark: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableHighWaterMark'),
-	  writableObjectMode: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableObjectMode'),
-	  writableBuffer: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableBuffer'),
-	  writableLength: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableLength'),
-	  writableFinished: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableFinished'),
-	  writableCorked: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableCorked'),
-	  writableEnded: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableEnded'),
-	  writableNeedDrain: ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableNeedDrain'),
+	  writable: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writable')
+	  },
+	  writableHighWaterMark: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableHighWaterMark')
+	  },
+	  writableObjectMode: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableObjectMode')
+	  },
+	  writableBuffer: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableBuffer')
+	  },
+	  writableLength: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableLength')
+	  },
+	  writableFinished: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableFinished')
+	  },
+	  writableCorked: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableCorked')
+	  },
+	  writableEnded: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableEnded')
+	  },
+	  writableNeedDrain: {
+	    __proto__: null,
+	    ...ObjectGetOwnPropertyDescriptor(Writable.prototype, 'writableNeedDrain')
+	  },
 	  destroyed: {
+	    __proto__: null,
+
 	    get() {
 	      if (this._readableState === undefined || this._writableState === undefined) {
 	        return false
@@ -8479,12 +8839,35 @@ const { ERR_METHOD_NOT_IMPLEMENTED } = errors.codes;
 
 const Duplex$2 = requireDuplex();
 
+const { getHighWaterMark } = state;
+
 ObjectSetPrototypeOf$1(Transform$2.prototype, Duplex$2.prototype);
 ObjectSetPrototypeOf$1(Transform$2, Duplex$2);
 const kCallback = Symbol$1('kCallback');
 
 function Transform$2(options) {
-  if (!(this instanceof Transform$2)) return new Transform$2(options)
+  if (!(this instanceof Transform$2)) return new Transform$2(options) // TODO (ronag): This should preferably always be
+  // applied but would be semver-major. Or even better;
+  // make Transform a Readable with the Writable interface.
+
+  const readableHighWaterMark = options ? getHighWaterMark(this, options, 'readableHighWaterMark', true) : null;
+
+  if (readableHighWaterMark === 0) {
+    // A Duplex will buffer both on the writable and readable side while
+    // a Transform just wants to buffer hwm number of elements. To avoid
+    // buffering twice we disable buffering on the writable side.
+    options = {
+      ...options,
+      highWaterMark: null,
+      readableHighWaterMark,
+      // TODO (ronag): 0 is not optimal since we have
+      // a "bug" where we check needDrain before calling _write and not after.
+      // Refs: https://github.com/nodejs/node/pull/32887
+      // Refs: https://github.com/nodejs/node/pull/35941
+      writableHighWaterMark: options.writableHighWaterMark || 0
+    };
+  }
+
   Duplex$2.call(this, options); // We have implemented the _read method, and done the other things
   // that Readable wants before the first _read call, so unset the
   // sync guard flag.
@@ -8565,9 +8948,7 @@ Transform$2.prototype._write = function (chunk, encoding, callback) {
     if (
       wState.ended || // Backwards compat.
       length === rState.length || // Backwards compat.
-      rState.length < rState.highWaterMark ||
-      rState.highWaterMark === 0 ||
-      rState.length === 0
+      rState.length < rState.highWaterMark
     ) {
       callback();
     } else {
@@ -8602,6 +8983,14 @@ PassThrough$3.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
 
+/* replacement start */
+
+const process = require$$0$1
+/* replacement end */
+// Ported from https://github.com/mafintosh/pump with
+// permission from the author, Mathias Buus (@mafintosh).
+
+;
 const { ArrayIsArray, Promise: Promise$2, SymbolAsyncIterator } = primordials;
 
 const eos$1 = endOfStream.exports;
@@ -8614,7 +9003,13 @@ const Duplex$1 = requireDuplex();
 
 const {
   aggregateTwoErrors,
-  codes: { ERR_INVALID_ARG_TYPE, ERR_INVALID_RETURN_VALUE, ERR_MISSING_ARGS: ERR_MISSING_ARGS$1, ERR_STREAM_DESTROYED },
+  codes: {
+    ERR_INVALID_ARG_TYPE,
+    ERR_INVALID_RETURN_VALUE,
+    ERR_MISSING_ARGS: ERR_MISSING_ARGS$1,
+    ERR_STREAM_DESTROYED,
+    ERR_STREAM_PREMATURE_CLOSE
+  },
   AbortError: AbortError$1
 } = errors;
 
@@ -8954,6 +9349,13 @@ function pipelineImpl(streams, callback, opts) {
 }
 
 function pipe(src, dst, finish, { end }) {
+  let ended = false;
+  dst.on('close', () => {
+    if (!ended) {
+      // Finish if the destination closes before the source has completed.
+      finish(new ERR_STREAM_PREMATURE_CLOSE());
+    }
+  });
   src.pipe(dst, {
     end
   });
@@ -8962,7 +9364,10 @@ function pipe(src, dst, finish, { end }) {
     // Compat. Before node v10.12.0 stdio used to throw an error so
     // pipe() did/does not end() stdio destinations.
     // Now they allow it but "secretly" don't close the underlying fd.
-    src.once('end', () => dst.end());
+    src.once('end', () => {
+      ended = true;
+      dst.end();
+    });
   } else {
     finish();
   }
@@ -9215,6 +9620,32 @@ var promises$1 = {
   pipeline: pipeline$1
 };
 
+/* replacement start */
+
+const { Buffer: Buffer$1 } = require$$0$2
+/* replacement end */
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+;
 const { ObjectDefineProperty, ObjectKeys, ReflectApply } = primordials;
 
 const {
@@ -9258,12 +9689,15 @@ for (const key of ObjectKeys(streamReturningOperators)) {
   }
 
   ObjectDefineProperty(fn, 'name', {
+    __proto__: null,
     value: op.name
   });
   ObjectDefineProperty(fn, 'length', {
+    __proto__: null,
     value: op.length
   });
   ObjectDefineProperty(Stream.Readable.prototype, key, {
+    __proto__: null,
     value: fn,
     enumerable: false,
     configurable: true,
@@ -9283,12 +9717,15 @@ for (const key of ObjectKeys(promiseReturningOperators)) {
   }
 
   ObjectDefineProperty(fn, 'name', {
+    __proto__: null,
     value: op.name
   });
   ObjectDefineProperty(fn, 'length', {
+    __proto__: null,
     value: op.length
   });
   ObjectDefineProperty(Stream.Readable.prototype, key, {
+    __proto__: null,
     value: fn,
     enumerable: false,
     configurable: true,
@@ -9309,6 +9746,7 @@ Stream.finished = eos;
 Stream.destroy = destroyer;
 Stream.compose = compose;
 ObjectDefineProperty(Stream, 'promises', {
+  __proto__: null,
   configurable: true,
   enumerable: true,
 
@@ -9317,6 +9755,7 @@ ObjectDefineProperty(Stream, 'promises', {
   }
 });
 ObjectDefineProperty(pipeline, customPromisify, {
+  __proto__: null,
   enumerable: true,
 
   get() {
@@ -9324,6 +9763,7 @@ ObjectDefineProperty(pipeline, customPromisify, {
   }
 });
 ObjectDefineProperty(eos, customPromisify, {
+  __proto__: null,
   enumerable: true,
 
   get() {
@@ -9665,7 +10105,7 @@ function runIfPresent(handle) {
 
 function installNextTickImplementation() {
     registerImmediate = function(handle) {
-        process.nextTick(function () { runIfPresent(handle); });
+        process$4.nextTick(function () { runIfPresent(handle); });
     };
 }
 
@@ -10195,7 +10635,7 @@ const duplexToNode = (pair) => {
       try {
         const { done, value: chunk } = await reader.read();
         if (done) { this.push(null); return }
-        this.push(Buffer$1.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+        this.push(Buffer$4.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
       } catch (e) { this.destroy(e); }
     },
     async write(chunk, encoding, callback) {
@@ -10238,7 +10678,7 @@ const createTransform = (FflateStream) => {
     }
   });
   const stream = new FflateStream((chunk, _) => {
-    transform.push(Buffer$1.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+    transform.push(Buffer$4.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
     final = _;
     if (final && finalCallback != null) { finalCallback(); }
   });
@@ -10345,16 +10785,16 @@ function deprecate(fn, msg) {
     };
   }
 
-  if (process.noDeprecation === true) {
+  if (process$4.noDeprecation === true) {
     return fn;
   }
 
   var warned = false;
   function deprecated() {
     if (!warned) {
-      if (process.throwDeprecation) {
+      if (process$4.throwDeprecation) {
         throw new Error(msg);
-      } else if (process.traceDeprecation) {
+      } else if (process$4.traceDeprecation) {
         console.trace(msg);
       } else {
         console.error(msg);
@@ -10371,7 +10811,7 @@ var debugs = {};
 var debugEnviron;
 function debuglog(set) {
   if (isUndefined(debugEnviron))
-    debugEnviron = process.env.NODE_DEBUG || '';
+    debugEnviron = process$4.env.NODE_DEBUG || '';
   set = set.toUpperCase();
   if (!debugs[set]) {
     if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
@@ -10779,7 +11219,7 @@ function isPrimitive(arg) {
 }
 
 function isBuffer(maybeBuf) {
-  return Buffer$1.isBuffer(maybeBuf);
+  return Buffer$4.isBuffer(maybeBuf);
 }
 
 function objectToString$1(o) {
@@ -11043,7 +11483,7 @@ ReadStream.prototype._read = function(n) {
   }
   self.context.pend.go(function(cb) {
     if (self.destroyed) return cb();
-    var buffer = new Buffer$1(toRead);
+    var buffer = new Buffer$4(toRead);
     fs$1.read(self.context.fd, buffer, 0, toRead, self.pos, function(err, bytesRead) {
       if (err) {
         self.destroy(err);
@@ -11232,7 +11672,7 @@ function createFromFd(fd, options) {
   return new FdSlicer(fd, options);
 }
 
-var Buffer = require$$0$1.Buffer;
+var Buffer = require$$0$2.Buffer;
 
 var CRC_TABLE = [
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419,
@@ -12127,13 +12567,13 @@ function readUInt64LE(buffer, offset) {
 
 // Node 10 deprecated new Buffer().
 var newBuffer;
-if (typeof Buffer$1.allocUnsafe === "function") {
+if (typeof Buffer$4.allocUnsafe === "function") {
   newBuffer = function(len) {
-    return Buffer$1.allocUnsafe(len);
+    return Buffer$4.allocUnsafe(len);
   };
 } else {
   newBuffer = function(len) {
-    return new Buffer$1(len);
+    return new Buffer$4(len);
   };
 }
 
@@ -12811,6 +13251,7 @@ const getGlobalThis = () => {
 let activeEffectScope;
 class EffectScope {
     constructor(detached = false) {
+        this.detached = detached;
         /**
          * @internal
          */
@@ -12823,8 +13264,8 @@ class EffectScope {
          * @internal
          */
         this.cleanups = [];
+        this.parent = activeEffectScope;
         if (!detached && activeEffectScope) {
-            this.parent = activeEffectScope;
             this.index =
                 (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(this) - 1;
         }
@@ -12870,7 +13311,7 @@ class EffectScope {
                 }
             }
             // nested scope, dereference from parent to avoid memory leaks
-            if (this.parent && !fromParent) {
+            if (!this.detached && this.parent && !fromParent) {
                 // optimized O(1) removal
                 const last = this.parent.scopes.pop();
                 if (last && last !== this) {
@@ -12878,6 +13319,7 @@ class EffectScope {
                     last.index = this.index;
                 }
             }
+            this.parent = undefined;
             this.active = false;
         }
     }
@@ -14132,7 +14574,9 @@ function queuePostFlushCb(cb) {
     }
     queueFlush();
 }
-function flushPreFlushCbs(seen, i = flushIndex) {
+function flushPreFlushCbs(seen, 
+// if currently flushing, skip the current job itself
+i = isFlushing ? flushIndex + 1 : 0) {
     for (; i < queue.length; i++) {
         const cb = queue[i];
         if (cb && cb.pre) {
@@ -14275,8 +14719,15 @@ function devtoolsUnmountApp(app) {
 const devtoolsComponentAdded = /*#__PURE__*/ createDevtoolsComponentHook("component:added" /* DevtoolsHooks.COMPONENT_ADDED */);
 const devtoolsComponentUpdated = 
 /*#__PURE__*/ createDevtoolsComponentHook("component:updated" /* DevtoolsHooks.COMPONENT_UPDATED */);
-const devtoolsComponentRemoved = 
-/*#__PURE__*/ createDevtoolsComponentHook("component:removed" /* DevtoolsHooks.COMPONENT_REMOVED */);
+const _devtoolsComponentRemoved = /*#__PURE__*/ createDevtoolsComponentHook("component:removed" /* DevtoolsHooks.COMPONENT_REMOVED */);
+const devtoolsComponentRemoved = (component) => {
+    if (devtools &&
+        typeof devtools.cleanupBuffer === 'function' &&
+        // remove the component if it wasn't buffered
+        !devtools.cleanupBuffer(component)) {
+        _devtoolsComponentRemoved(component);
+    }
+};
 function createDevtoolsComponentHook(hook) {
     return (component) => {
         emit(hook, component.appContext.app, component.uid, component.parent ? component.parent.uid : undefined, component);
@@ -14453,10 +14904,15 @@ function withCtx(fn, ctx = currentRenderingInstance, isNonScopedSlot // false on
             setBlockTracking(-1);
         }
         const prevInstance = setCurrentRenderingInstance(ctx);
-        const res = fn(...args);
-        setCurrentRenderingInstance(prevInstance);
-        if (renderFnWithContext._d) {
-            setBlockTracking(1);
+        let res;
+        try {
+            res = fn(...args);
+        }
+        finally {
+            setCurrentRenderingInstance(prevInstance);
+            if (renderFnWithContext._d) {
+                setBlockTracking(1);
+            }
         }
         if (__VUE_PROD_DEVTOOLS__) {
             devtoolsComponentUpdated(ctx);
@@ -14692,7 +15148,8 @@ const SuspenseImpl = {
     normalize: normalizeSuspenseChildren
 };
 // Force-casted public typing for h and TSX props inference
-const Suspense = (SuspenseImpl );
+const Suspense = (SuspenseImpl
+    );
 function triggerEvent(vnode, name) {
     const eventListener = vnode.props && vnode.props[name];
     if (isFunction(eventListener)) {
@@ -16117,7 +16574,7 @@ function injectHook(type, hook, target = currentInstance, prepend = false) {
 const createHook = (lifecycle) => (hook, target = currentInstance) => 
 // post-create lifecycle registrations are noops during SSR (except for serverPrefetch)
 (!isInSSRComponentSetup || lifecycle === "sp" /* LifecycleHooks.SERVER_PREFETCH */) &&
-    injectHook(lifecycle, hook, target);
+    injectHook(lifecycle, (...args) => hook(...args), target);
 const onBeforeMount = createHook("bm" /* LifecycleHooks.BEFORE_MOUNT */);
 const onMounted = createHook("m" /* LifecycleHooks.MOUNTED */);
 const onBeforeUpdate = createHook("bu" /* LifecycleHooks.BEFORE_UPDATE */);
@@ -16307,7 +16764,10 @@ function createSlots(slots, dynamicSlots) {
             slots[slot.name] = slot.key
                 ? (...args) => {
                     const res = slot.fn(...args);
-                    res.key = slot.key;
+                    // attach branch key so each conditional branch is considered a
+                    // different fragment
+                    if (res)
+                        res.key = slot.key;
                     return res;
                 }
                 : slot.fn;
@@ -17187,6 +17647,7 @@ const normalizeSlot = (key, rawSlot, ctx) => {
         return rawSlot;
     }
     const normalized = withCtx((...args) => {
+        if (("production" !== 'production') && currentInstance) ;
         return normalizeSlotValue(rawSlot(...args));
     }, ctx);
     normalized._c = false;
@@ -17444,7 +17905,11 @@ function setRef(rawRef, oldRawRef, parentSuspense, vnode, isUnmount = false) {
         if (_isString || _isRef) {
             const doSet = () => {
                 if (rawRef.f) {
-                    const existing = _isString ? refs[ref] : ref.value;
+                    const existing = _isString
+                        ? hasOwn(setupState, ref)
+                            ? setupState[ref]
+                            : refs[ref]
+                        : ref.value;
                     if (isUnmount) {
                         isArray(existing) && remove(existing, refValue);
                     }
@@ -17521,7 +17986,7 @@ function createHydrationFunctions(rendererInternals) {
         const isFragmentStart = isComment(node) && node.data === '[';
         const onMismatch = () => handleMismatch(node, vnode, parentComponent, parentSuspense, slotScopeIds, isFragmentStart);
         const { type, ref, shapeFlag, patchFlag } = vnode;
-        const domType = node.nodeType;
+        let domType = node.nodeType;
         vnode.el = node;
         if (patchFlag === -2 /* PatchFlags.BAIL */) {
             optimized = false;
@@ -17558,10 +18023,12 @@ function createHydrationFunctions(rendererInternals) {
                 }
                 break;
             case Static:
-                if (domType !== 1 /* DOMNodeTypes.ELEMENT */ && domType !== 3 /* DOMNodeTypes.TEXT */) {
-                    nextNode = onMismatch();
+                if (isFragmentStart) {
+                    // entire template is static but SSRed as a fragment
+                    node = nextSibling(node);
+                    domType = node.nodeType;
                 }
-                else {
+                if (domType === 1 /* DOMNodeTypes.ELEMENT */ || domType === 3 /* DOMNodeTypes.TEXT */) {
                     // determine anchor, adopt content
                     nextNode = node;
                     // if the static vnode has its content stripped during build,
@@ -17578,7 +18045,10 @@ function createHydrationFunctions(rendererInternals) {
                         }
                         nextNode = nextSibling(nextNode);
                     }
-                    return nextNode;
+                    return isFragmentStart ? nextSibling(nextNode) : nextNode;
+                }
+                else {
+                    onMismatch();
                 }
                 break;
             case Fragment:
@@ -17863,7 +18333,7 @@ function baseCreateRenderer(options, createHydrationFns) {
     if (__VUE_PROD_DEVTOOLS__) {
         setDevtoolsHook(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target);
     }
-    const { insert: hostInsert, remove: hostRemove, patchProp: hostPatchProp, createElement: hostCreateElement, createText: hostCreateText, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, parentNode: hostParentNode, nextSibling: hostNextSibling, setScopeId: hostSetScopeId = NOOP, cloneNode: hostCloneNode, insertStaticContent: hostInsertStaticContent } = options;
+    const { insert: hostInsert, remove: hostRemove, patchProp: hostPatchProp, createElement: hostCreateElement, createText: hostCreateText, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, parentNode: hostParentNode, nextSibling: hostNextSibling, setScopeId: hostSetScopeId = NOOP, insertStaticContent: hostInsertStaticContent } = options;
     // Note: functions inside this closure should use `const xxx = () => {}`
     // style in order to prevent being inlined by minifiers.
     const patch = (n1, n2, container, anchor = null, parentComponent = null, parentSuspense = null, isSVG = false, slotScopeIds = null, optimized = !!n2.dynamicChildren) => {
@@ -17969,55 +18439,44 @@ function baseCreateRenderer(options, createHydrationFns) {
     const mountElement = (vnode, container, anchor, parentComponent, parentSuspense, isSVG, slotScopeIds, optimized) => {
         let el;
         let vnodeHook;
-        const { type, props, shapeFlag, transition, patchFlag, dirs } = vnode;
-        if (vnode.el &&
-            hostCloneNode !== undefined &&
-            patchFlag === -1 /* PatchFlags.HOISTED */) {
-            // If a vnode has non-null el, it means it's being reused.
-            // Only static vnodes can be reused, so its mounted DOM nodes should be
-            // exactly the same, and we can simply do a clone here.
-            // only do this in production since cloned trees cannot be HMR updated.
-            el = vnode.el = hostCloneNode(vnode.el);
+        const { type, props, shapeFlag, transition, dirs } = vnode;
+        el = vnode.el = hostCreateElement(vnode.type, isSVG, props && props.is, props);
+        // mount children first, since some props may rely on child content
+        // being already rendered, e.g. `<select value>`
+        if (shapeFlag & 8 /* ShapeFlags.TEXT_CHILDREN */) {
+            hostSetElementText(el, vnode.children);
         }
-        else {
-            el = vnode.el = hostCreateElement(vnode.type, isSVG, props && props.is, props);
-            // mount children first, since some props may rely on child content
-            // being already rendered, e.g. `<select value>`
-            if (shapeFlag & 8 /* ShapeFlags.TEXT_CHILDREN */) {
-                hostSetElementText(el, vnode.children);
-            }
-            else if (shapeFlag & 16 /* ShapeFlags.ARRAY_CHILDREN */) {
-                mountChildren(vnode.children, el, null, parentComponent, parentSuspense, isSVG && type !== 'foreignObject', slotScopeIds, optimized);
-            }
-            if (dirs) {
-                invokeDirectiveHook(vnode, null, parentComponent, 'created');
-            }
-            // props
-            if (props) {
-                for (const key in props) {
-                    if (key !== 'value' && !isReservedProp(key)) {
-                        hostPatchProp(el, key, null, props[key], isSVG, vnode.children, parentComponent, parentSuspense, unmountChildren);
-                    }
-                }
-                /**
-                 * Special case for setting value on DOM elements:
-                 * - it can be order-sensitive (e.g. should be set *after* min/max, #2325, #4024)
-                 * - it needs to be forced (#1471)
-                 * #2353 proposes adding another renderer option to configure this, but
-                 * the properties affects are so finite it is worth special casing it
-                 * here to reduce the complexity. (Special casing it also should not
-                 * affect non-DOM renderers)
-                 */
-                if ('value' in props) {
-                    hostPatchProp(el, 'value', null, props.value);
-                }
-                if ((vnodeHook = props.onVnodeBeforeMount)) {
-                    invokeVNodeHook(vnodeHook, parentComponent, vnode);
-                }
-            }
-            // scopeId
-            setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent);
+        else if (shapeFlag & 16 /* ShapeFlags.ARRAY_CHILDREN */) {
+            mountChildren(vnode.children, el, null, parentComponent, parentSuspense, isSVG && type !== 'foreignObject', slotScopeIds, optimized);
         }
+        if (dirs) {
+            invokeDirectiveHook(vnode, null, parentComponent, 'created');
+        }
+        // props
+        if (props) {
+            for (const key in props) {
+                if (key !== 'value' && !isReservedProp(key)) {
+                    hostPatchProp(el, key, null, props[key], isSVG, vnode.children, parentComponent, parentSuspense, unmountChildren);
+                }
+            }
+            /**
+             * Special case for setting value on DOM elements:
+             * - it can be order-sensitive (e.g. should be set *after* min/max, #2325, #4024)
+             * - it needs to be forced (#1471)
+             * #2353 proposes adding another renderer option to configure this, but
+             * the properties affects are so finite it is worth special casing it
+             * here to reduce the complexity. (Special casing it also should not
+             * affect non-DOM renderers)
+             */
+            if ('value' in props) {
+                hostPatchProp(el, 'value', null, props.value);
+            }
+            if ((vnodeHook = props.onVnodeBeforeMount)) {
+                invokeVNodeHook(vnodeHook, parentComponent, vnode);
+            }
+        }
+        // scopeId
+        setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent);
         if (__VUE_PROD_DEVTOOLS__) {
             Object.defineProperty(el, '__vnode', {
                 value: vnode,
@@ -18189,6 +18648,13 @@ function baseCreateRenderer(options, createHydrationFns) {
     };
     const patchProps = (el, vnode, oldProps, newProps, parentComponent, parentSuspense, isSVG) => {
         if (oldProps !== newProps) {
+            if (oldProps !== EMPTY_OBJ) {
+                for (const key in oldProps) {
+                    if (!isReservedProp(key) && !(key in newProps)) {
+                        hostPatchProp(el, key, oldProps[key], null, isSVG, vnode.children, parentComponent, parentSuspense, unmountChildren);
+                    }
+                }
+            }
             for (const key in newProps) {
                 // empty string is not valid prop
                 if (isReservedProp(key))
@@ -18198,13 +18664,6 @@ function baseCreateRenderer(options, createHydrationFns) {
                 // defer patching value
                 if (next !== prev && key !== 'value') {
                     hostPatchProp(el, key, prev, next, isSVG, vnode.children, parentComponent, parentSuspense, unmountChildren);
-                }
-            }
-            if (oldProps !== EMPTY_OBJ) {
-                for (const key in oldProps) {
-                    if (!isReservedProp(key) && !(key in newProps)) {
-                        hostPatchProp(el, key, oldProps[key], null, isSVG, vnode.children, parentComponent, parentSuspense, unmountChildren);
-                    }
                 }
             }
             if ('value' in newProps) {
@@ -19555,7 +20014,10 @@ function normalizeVNode(child) {
 }
 // optimized normalization for template-compiled render fns
 function cloneIfMounted(child) {
-    return child.el === null || child.memo ? child : cloneVNode(child);
+    return (child.el === null && child.patchFlag !== -1 /* PatchFlags.HOISTED */) ||
+        child.memo
+        ? child
+        : cloneVNode(child);
 }
 function normalizeChildren(vnode, children) {
     let type = 0;
@@ -19853,7 +20315,8 @@ function finishComponentSetup(instance, isSSR, skipOptions) {
         // only do on-the-fly compile if not in SSR - SSR on-the-fly compilation
         // is done by server-renderer
         if (!isSSR && compile$1 && !Component.render) {
-            const template = Component.template;
+            const template = Component.template ||
+                resolveMergedOptions(instance).template;
             if (template) {
                 const { isCustomElement, compilerOptions } = instance.appContext.config;
                 const { delimiters, compilerOptions: componentCompilerOptions } = Component;
@@ -20161,7 +20624,7 @@ function isMemoSame(cached, memo) {
 }
 
 // Core API ------------------------------------------------------------------
-const version = "3.2.38";
+const version = "3.2.41";
 const _ssrUtils = {
     createComponentInstance,
     setupComponent,
@@ -20219,22 +20682,6 @@ const nodeOps = {
     querySelector: selector => doc.querySelector(selector),
     setScopeId(el, id) {
         el.setAttribute(id, '');
-    },
-    cloneNode(el) {
-        const cloned = el.cloneNode(true);
-        // #3072
-        // - in `patchDOMProp`, we store the actual value in the `el._value` property.
-        // - normally, elements using `:value` bindings will not be hoisted, but if
-        //   the bound value is a constant, e.g. `:value="true"` - they do get
-        //   hoisted.
-        // - in production, hoisted nodes are cloned when subsequent inserts, but
-        //   cloneNode() does not copy the custom property we attached.
-        // - This may need to account for other custom DOM properties we attach to
-        //   elements in addition to `_value` in the future.
-        if (`_value` in el) {
-            cloned._value = el._value;
-        }
-        return cloned;
     },
     // __UNSAFE__
     // Reason: innerHTML.
@@ -20447,7 +20894,6 @@ prevChildren, parentComponent, parentSuspense, unmountChildren) {
         }
         else if (type === 'number') {
             // e.g. <img :width="null">
-            // the value of some IDL attr must be greater than 0, e.g. input.size = 0 -> error
             value = 0;
             needRemove = true;
         }
@@ -20463,36 +20909,6 @@ prevChildren, parentComponent, parentSuspense, unmountChildren) {
     needRemove && el.removeAttribute(key);
 }
 
-// Async edge case fix requires storing an event listener's attach timestamp.
-const [_getNow, skipTimestampCheck] = /*#__PURE__*/ (() => {
-    let _getNow = Date.now;
-    let skipTimestampCheck = false;
-    if (typeof window !== 'undefined') {
-        // Determine what event timestamp the browser is using. Annoyingly, the
-        // timestamp can either be hi-res (relative to page load) or low-res
-        // (relative to UNIX epoch), so in order to compare time we have to use the
-        // same timestamp type when saving the flush timestamp.
-        if (Date.now() > document.createEvent('Event').timeStamp) {
-            // if the low-res timestamp which is bigger than the event timestamp
-            // (which is evaluated AFTER) it means the event is using a hi-res timestamp,
-            // and we need to use the hi-res version for event listeners as well.
-            _getNow = performance.now.bind(performance);
-        }
-        // #3485: Firefox <= 53 has incorrect Event.timeStamp implementation
-        // and does not fire microtasks in between event propagation, so safe to exclude.
-        const ffMatch = navigator.userAgent.match(/firefox\/(\d+)/i);
-        skipTimestampCheck = !!(ffMatch && Number(ffMatch[1]) <= 53);
-    }
-    return [_getNow, skipTimestampCheck];
-})();
-// To avoid the overhead of repeatedly calling performance.now(), we cache
-// and use the same timestamp for all event listeners attached in the same tick.
-let cachedNow = 0;
-const p = /*#__PURE__*/ Promise.resolve();
-const reset = () => {
-    cachedNow = 0;
-};
-const getNow = () => cachedNow || (p.then(reset), (cachedNow = _getNow()));
 function addEventListener(el, event, handler, options) {
     el.addEventListener(event, handler, options);
 }
@@ -20535,18 +20951,32 @@ function parseName(name) {
     const event = name[2] === ':' ? name.slice(3) : hyphenate(name.slice(2));
     return [event, options];
 }
+// To avoid the overhead of repeatedly calling Date.now(), we cache
+// and use the same timestamp for all event listeners attached in the same tick.
+let cachedNow = 0;
+const p = /*#__PURE__*/ Promise.resolve();
+const getNow = () => cachedNow || (p.then(() => (cachedNow = 0)), (cachedNow = Date.now()));
 function createInvoker(initialValue, instance) {
     const invoker = (e) => {
-        // async edge case #6566: inner click event triggers patch, event handler
+        // async edge case vuejs/vue#6566
+        // inner click event triggers patch, event handler
         // attached to outer element during patch, and triggered again. This
         // happens because browsers fire microtask ticks between event propagation.
-        // the solution is simple: we save the timestamp when a handler is attached,
-        // and the handler would only fire if the event passed to it was fired
+        // this no longer happens for templates in Vue 3, but could still be
+        // theoretically possible for hand-written render functions.
+        // the solution: we save the timestamp when a handler is attached,
+        // and also attach the timestamp to any event that was handled by vue
+        // for the first time (to avoid inconsistent event timestamp implementations
+        // or events fired from iframes, e.g. #2513)
+        // The handler would only fire if the event passed to it was fired
         // AFTER it was attached.
-        const timeStamp = e.timeStamp || _getNow();
-        if (skipTimestampCheck || timeStamp >= invoker.attached - 1) {
-            callWithAsyncErrorHandling(patchStopImmediatePropagation(e, invoker.value), instance, 5 /* ErrorCodes.NATIVE_EVENT_HANDLER */, [e]);
+        if (!e._vts) {
+            e._vts = Date.now();
         }
+        else if (e._vts <= invoker.attached) {
+            return;
+        }
+        callWithAsyncErrorHandling(patchStopImmediatePropagation(e, invoker.value), instance, 5 /* ErrorCodes.NATIVE_EVENT_HANDLER */, [e]);
     };
     invoker.value = initialValue;
     invoker.attached = getNow();
@@ -21919,55 +22349,6 @@ const Vue = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   withModifiers
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const units = 'bytes KB MB GB TB PB EB ZB YB'.split(' ');
-
-function formatBytes(bytes) {
-  assert(arguments.length === 1, 'Must receive exactly one argument');
-
-  assert(
-    Number.isInteger(bytes) && bytes >= 0,
-    'First argument must be a positive integer'
-  );
-
-  // Special case - singular form
-  if (bytes === 1) {
-    return '1 byte';
-  }
-
-  // Special case - output precision should not exceed input precision
-  if (bytes < 100) {
-    return String(bytes) + ' ' + units[0];
-  }
-
-  // Round before choosing unit
-  const round = Number(bytes.toPrecision(3));
-
-  const magnitude = logFloor(round, 1000);
-
-  // If we don't have a large enough unit, fall back to scientific notation.
-  if (magnitude >= units.length) {
-    return round.toPrecision(3).replace('e+', ' × 10^') + ' ' + units[0];
-  }
-
-  return (
-    (round / Math.pow(1000, magnitude)).toPrecision(3) + ' ' + units[magnitude]
-  );
-}
-
-// Simpler implementations are often off by one due to floating point errors.
-function logFloor(n, base) {
-  const ceil = Math.round(Math.log(n) / Math.log(base));
-  return ceil - (Math.pow(base, ceil) > n ? 1 : 0);
-}
-
-function assert(success, message) {
-  if (!success) {
-    throw Error(message);
-  }
-}
-
-var formatBytes_1 = formatBytes;
-
 var tick = 1;
 var maxTick = 65535;
 var resolution = 4;
@@ -22008,4 +22389,4 @@ var speedometer = function (seconds) {
   }
 };
 
-export { Buffer$1 as B, EventEmitter$2 as E, Vue as V, stream$1 as a, browser$3 as b, createApp as c, formatBytes_1 as f, pinyinUtil as p, speedometer as s, wav as w, yauzl as y };
+export { Buffer$4 as B, EventEmitter$2 as E, Vue as V, stream$1 as a, browser$3 as b, createApp as c, pinyinUtil as p, speedometer as s, wav as w, yauzl as y };
