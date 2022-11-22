@@ -59,7 +59,7 @@ export class UnzipEntry {
         err == null ? ok(zipfile) : reject(err)
       })
     })
-    return this.readEntries(zipfile)
+    return [zipfile.entryCount, this.readEntries(zipfile)]
   }
   static fromBlob(blob) {
     return this.fromRandomAccessReader((start, end) => {

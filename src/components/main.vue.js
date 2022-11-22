@@ -1,12 +1,24 @@
 
 import * as Vue from 'vue'
 const { createVNode: h, defineComponent } = Vue
-import formatBytes from 'format-bytes'
 import { UnzipEntry } from '../unzip/unzip-entry'
 import { Archive, ArchiveWithEx } from '../voice/archive'
 
-const formatProgress = ({ loaded, total, percent, speed }) => {
-  return `[${percent}%][${formatBytes(Math.trunc(speed))}/s][${formatBytes(loaded)}/${formatBytes(total)}]`
+const { MAX_SAFE_INTEGER } = Number, { pow, min, trunc } = Math
+const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"]
+const exps = Array.from(units, (_, i) => pow(0x400, i))
+const formatBytes = bytes => {
+  let i = 1, len = exps.length
+  while (i < len && bytes > exps[i]) { i++ } i--
+  return (bytes / exps[i]).toFixed(min(2, i >> 1)) + ' ' + units[i]
+}
+const formatRemaining = function* (time) {
+  let i = 0; time = +time
+  if (!(time >= 0 && time <= MAX_SAFE_INTEGER)) { return yield '未知' }
+  if (time >= 86400) { yield trunc(time / 86400) + '天'; time %= 86400; i++ }
+  if (time >= 3600 || i > 0) { yield trunc(time / 3600) + '时'; time %= 3600; i++ }
+  if (time >= 60 || i > 0) { yield trunc(time / 60) + '分'; time %= 60 }
+  yield trunc(time) + '秒'
 }
 const name = '活字印刷语音'
 export default defineComponent({
@@ -91,32 +103,44 @@ export default defineComponent({
       submitter.disabled = true
       tip.innerText = ''
       dest.value = ''
-      let timer = null
+      let timer = null, name, progress, step, onProgress = () => {
+        const { loaded, total, percent, speed } = progress
+        const notLoaded = total - loaded
+        const [a, b = ''] = formatRemaining(notLoaded > 0 ? notLoaded / speed : 0)
+        tip.innerText = `加载 ${name}[${percent}][${formatBytes(loaded)}/${formatBytes(total)}][${formatBytes(speed)}/s][剩余 ${a}${b} ]`
+      }
       try {
+        tip.innerText = (step = '加载') + '中'
         const archive = vm.voices.get(els.namedItem('voice').value)
-        let name, progress, onFetchProgress = () => {
-          tip.innerText = `加载 ${name}${formatProgress(progress)}`
-        }
         const lib = await archive.getVoiceLibrary(48000, {
-          onFetchProgress(_name, _progress) {
+          onFetchStart(name) {
+            tip.innerText = `开始下载 ${name}`
+          },
+          onFetch(_name, _progress) {
             name = _name; progress = _progress
             if (timer != null) { return }
-            timer = setInterval(onFetchProgress, 200)
-            onFetchProgress()
+            timer = setInterval(onProgress, 200)
+            onProgress()
           },
           onFetchEnd(name) {
             clearInterval(timer); timer = null
+            tip.innerText = `下载完成 ${name}`
+          },
+          onUnzipStart(name) {
+            tip.innerText = `开始加载 ${name}`
+          },
+          onUnzipEnd(name) {
             tip.innerText = `加载完成 ${name}`
           }
         })
-        tip.innerText = submitter.value + '中'
+        tip.innerText = (step = submitter.value) + '中'
         const list = Array.from(archive.parse(els.namedItem('src').value)).join(' ')
         vm.audioSrc = URL.createObjectURL(await lib.concat(list.split(' ')))
         tip.innerText = ''
         dest.value = list
       } catch (err) {
         clearInterval(timer); timer = null
-        tip.innerText = submitter.value + '失败'
+        tip.innerText = step + '失败'
         throw err
       } finally {
         submitter.disabled = false

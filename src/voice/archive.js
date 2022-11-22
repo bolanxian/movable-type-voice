@@ -3,7 +3,7 @@ import pinyinUtil from 'ipinyinjs/pinyinUtil'
 import { UnzipEntry } from '../unzip/unzip-entry'
 import dictionary from './dictionary.json'
 import { Library } from './library'
-import { ProgressSource } from './progress'
+import { ProgressStream } from './progress'
 
 const baseParserList = [
   [new RegExp(Object.keys(dictionary).join('|')), str => dictionary[str]],
@@ -42,7 +42,8 @@ export class Archive {
   }
   async createBlob(init = {}) {
     const { url, name } = this, cache = await Archive.cachePromise
-    let response = await cache.match(url), put, onFetchProgress
+    init.onFetchStart?.(name)
+    let response = await cache.match(url), put, onFetch
     if (response != null) {
       const { headers } = response
       const date = headers.get('date')
@@ -62,27 +63,24 @@ export class Archive {
           }
           put = cache.put(url, response.clone())
         } else if (hasModified.status === 200) {
-          response.body?.cancel()
           response = hasModified
           put = cache.put(url, response.clone())
-          onFetchProgress = init.onFetchProgress
+          onFetch = init.onFetch
         } else {
-          response.body?.cancel()
-          hasModified.body?.cancel()
           throw new TypeError(`Request failed with status code ${hasModified.status}`)
         }
       }
     } else {
       response = await fetch(url)
       if (response.status !== 200) {
-        response.body?.cancel()
         throw new TypeError(`Request failed with status code ${response.status}`)
       }
       put = cache.put(url, response.clone())
-      onFetchProgress = init.onFetchProgress
+      onFetch = init.onFetch
     }
-    if (onFetchProgress != null) {
-      response = ProgressSource.create(response, (progress) => { onFetchProgress(name, progress) })
+    if (onFetch != null) {
+      let stream;[stream, response] = ProgressStream.fromResponse(response)
+      onFetch(name, stream.progress)
     }
     const blob = await response.blob()
     if (put != null) { await put }
@@ -96,11 +94,13 @@ export class Archive {
     return this.blobPromise
   }
   async createEntries(init) {
-    let array = [], entries// = await UnzipEntry.fromUrl(this.url)
-    if (entries == null) {
-      entries = await UnzipEntry.fromBlob(await this.getBlob(init))
-    }
+    const { name } = this
+    //entries = await UnzipEntry.fromUrl(this.url)
+    const blob = await this.getBlob(init)
+    init.onUnzipStart?.(name)
+    const [entryCount, entries] = await UnzipEntry.fromBlob(blob), array = []
     for await (const entry of entries) { array.push(entry) }
+    init.onUnzipEnd?.(name)
     return array
   }
   getEntries(init) {
@@ -110,7 +110,7 @@ export class Archive {
     return this.entriesPromise
   }
   async createVoiceLibrary(sampleRate, init = {}) {
-    const lib = new Library(sampleRate), { name } = this
+    const lib = new Library(sampleRate)
     lib.injectUnzipEntries(await this.getEntries(init))
     this.parse = Archive.createParser(baseParserList)
     return lib
@@ -141,10 +141,11 @@ export class ArchiveWithEx extends Archive {
     for (const arch of [this.main, this]) {
       lib.injectUnzipEntries(await arch.getEntries(init))
     }
-    const table = JSON.parse(await lib.entryMap.get('table').text())
+    const tableEntry = lib.entryMap.get('table')
+    const table = tableEntry != null ? JSON.parse(await tableEntry.text()) : {}
     lib.entryMap.delete('table')
     this.parse = Archive.createParser([
-      [new RegExp(Object.keys(table).join('|')), str => table[str]],
+      [new RegExp(Object.keys(table).sort((a, b) => b.length - a.length).join('|')), str => table[str]],
       ...baseParserList
     ])
     return lib
