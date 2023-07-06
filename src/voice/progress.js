@@ -19,13 +19,7 @@ class Progress {
   #speedometer = speedometer()
   #isFinalized = false
   constructor(total) {
-    switch (typeof total) {
-      default:
-        total = String(total)
-      case 'string':
-        total = +total
-      case 'number':
-    }
+    total = +total
     if (total > 0 && total <= MAX_SAFE_INTEGER) {
       this.#total = total
       this.#lengthComputable = true

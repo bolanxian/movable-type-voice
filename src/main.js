@@ -1,16 +1,14 @@
 
-import { Buffer } from 'buffer'
-import EventEmitter from 'events'
-import stream from 'stream'
-import wav from 'wav-encoder'
-import yauzl from 'yauzl'
-import pinyinUtil from 'ipinyinjs/pinyinUtil'
-import * as Vue from 'vue'
-
+import { createApp } from 'vue'
+import { Archive, ArchiveWithEx } from './voice/archive'
 import Main from './components/main.vue'
-const vm = Vue.createApp(Main).mount('#app')
 
-Object.assign(window, {
-  modules: { Buffer, EventEmitter, stream, wav, yauzl, pinyinUtil, Vue },
-  vm
-})
+const otto = new ArchiveWithEx('./otto', '电棍')
+//const taffy = new Archive('./taffy', '塔菲')
+const voices = new Map()
+for (const arch of [otto.main, otto/*, taffy*/]) {
+  voices.set(arch.name, arch)
+}
+
+const vm = createApp(Main, { voices }).mount('#app')
+window.vm = vm

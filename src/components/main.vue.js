@@ -1,11 +1,10 @@
 
-import * as Vue from 'vue'
-const { createVNode: h, defineComponent } = Vue
+import { defineComponent, createVNode as h } from 'vue'
 import { UnzipEntry } from '../unzip/unzip-entry'
 import { Archive, ArchiveWithEx } from '../voice/archive'
 
 const { MAX_SAFE_INTEGER } = Number, { pow, min, trunc } = Math
-const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"]
+const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
 const exps = Array.from(units, (_, i) => pow(0x400, i))
 const formatBytes = bytes => {
   let i = 1, len = exps.length
@@ -20,21 +19,16 @@ const formatRemaining = function* (time) {
   if (time >= 60 || i > 0) { yield trunc(time / 60) + '分'; time %= 60 }
   yield trunc(time) + '秒'
 }
+
 const name = '活字印刷语音'
 export default defineComponent({
   name,
+  props: {
+    voices: { type: Map, require: true }
+  },
   data() {
     return {
       audioSrc: null
-    }
-  },
-  beforeMount() {
-    const vm = this
-    const otto = new ArchiveWithEx('./otto', '电棍')
-    const taffy = new Archive('./taffy', '塔菲')
-    const archs = vm.voices = new Map()
-    for (const arch of [otto.main, otto, taffy]) {
-      archs.set(arch.name, arch)
     }
   },
   mounted() {
@@ -149,23 +143,23 @@ export default defineComponent({
   },
   render() {
     const vm = this
-    return h('form', { class: "main", action: "about:blank", onSubmit: vm.handleSubmit }, [
-      h('div', { class: "title" }, [
+    return h('form', { class: 'main', action: 'javascript:void+0', onSubmit: vm.handleSubmit }, [
+      h('div', { class: 'title' }, [
         h('h1', null, name)
       ]),
-      h('textarea', { name: "src" }),
-      h('div', { style: "margin:10px 0px;" }, [
-        h('input', { type: "submit", value: "生成", name: "gen" }),
-        h('span', { style: "display:inline-block;" }, Array.from(vm.voices.keys(), key => {
+      h('textarea', { name: 'src' }),
+      h('div', { style: 'margin:10px 0px;' }, [
+        h('input', { type: 'submit', value: '生成', name: 'gen' }),
+        h('span', { style: 'display:inline-block;' }, Array.from(vm.voices.keys(), key => {
           return h('label', null, [
-            h('input', { type: "radio", name: "voice", value: key }), key
+            h('input', { type: 'radio', name: 'voice', value: key }), key
           ])
         }))
       ]),
-      h('textarea', { name: "dest", readonly: "" }),
-      h('div', { style: "margin:10px 0px;" }, [
-        vm.audioSrc != null ? h('audio', { src: vm.audioSrc, controls: '', style: "display: inline-block;" }) : null,
-        h('span', { name: "tip" })
+      h('textarea', { name: 'dest', readonly: '' }),
+      h('div', { style: 'margin:10px 0px;' }, [
+        vm.audioSrc != null ? h('audio', { src: vm.audioSrc, controls: '', style: 'display: inline-block;' }) : null,
+        h('span', { name: 'tip' })
       ])
     ])
   }

@@ -25,7 +25,7 @@ export default defineConfig({
   base: './',
   build: {
     target: 'esnext',
-    polyfillModulePreload: false,
+    modulePreload: false,
     cssCodeSplit: false,
     minify: false
   },
