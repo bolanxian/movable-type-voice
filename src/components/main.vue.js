@@ -2,23 +2,8 @@
 import { defineComponent, createVNode as h } from 'vue'
 import { UnzipEntry } from '../unzip/unzip-entry'
 import { Archive, ArchiveWithEx } from '../voice/archive'
-
-const { MAX_SAFE_INTEGER } = Number, { pow, min, trunc } = Math
-const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-const exps = Array.from(units, (_, i) => pow(0x400, i))
-const formatBytes = bytes => {
-  let i = 1, len = exps.length
-  while (i < len && bytes > exps[i]) { i++ } i--
-  return (bytes / exps[i]).toFixed(min(2, i >> 1)) + ' ' + units[i]
-}
-const formatRemaining = function* (time) {
-  let i = 0; time = +time
-  if (!(time >= 0 && time <= MAX_SAFE_INTEGER)) { return yield '未知' }
-  if (time >= 86400) { yield trunc(time / 86400) + '天'; time %= 86400; i++ }
-  if (time >= 3600 || i > 0) { yield trunc(time / 3600) + '时'; time %= 3600; i++ }
-  if (time >= 60 || i > 0) { yield trunc(time / 60) + '分'; time %= 60 }
-  yield trunc(time) + '秒'
-}
+import { update, final, Progress } from '../voice/progress'
+import { now, renderProgress } from '../utils'
 
 const name = '活字印刷语音'
 export default defineComponent({
@@ -62,7 +47,6 @@ export default defineComponent({
       for (const file of dT.files) {
         if (file.name.endsWith(suffixEx)) { ex = file }
         else if (file.name.endsWith(suffix)) { main = file }
-        //if (file.name.endsWith('.zip')) { this.handleZip(file); return }
       }
       const archs = this.voices
       if (main != null) {
@@ -78,7 +62,7 @@ export default defineComponent({
         this.$forceUpdate()
       }
     },
-    async handleZip(file) {
+    async testZip(file) {
       const { name } = file, array = []
       const entries = await UnzipEntry.fromBlob(file)
       for await (const entry of entries) {
@@ -87,6 +71,21 @@ export default defineComponent({
         await entry.stream().pipeTo(new WritableStream())
       }
       console.log(file, array)
+    },
+    testProgress(speed = 1, total = 128) {
+      const tip = this.$el.querySelector('[name=tip]')
+      const progress = new Progress(total * 1024 * 1024), start = now()
+      const onProgress = () => {
+        update(progress, speed * 1024 * 1024 / 10)
+        if (progress.loaded >= progress.total) {
+          update(progress, progress.total - progress.loaded)
+          final(progress)
+          clearInterval(timer)
+        }
+        tip.innerText = renderProgress(progress, start)
+      }
+      const timer = setInterval(onProgress, 100)
+      tip.innerText = renderProgress(progress, start)
     },
     async handleSubmit(e) {
       e.preventDefault(); e.stopPropagation()
@@ -97,34 +96,34 @@ export default defineComponent({
       submitter.disabled = true
       tip.innerText = ''
       dest.value = ''
-      let timer = null, name, progress, step, onProgress = () => {
-        const { loaded, total, percent, speed } = progress
-        const notLoaded = total - loaded
-        const [a, b = ''] = formatRemaining(notLoaded > 0 ? notLoaded / speed : 0)
-        tip.innerText = `加载 ${name}[${percent}][${formatBytes(loaded)}/${formatBytes(total)}][${formatBytes(speed)}/s][剩余 ${a}${b} ]`
+      let timer = null, step
+      let name, progress, start
+      const onProgress = () => {
+        tip.innerText = `正在下载：${name}\n${renderProgress(progress, start)}`
       }
       try {
         tip.innerText = (step = '加载') + '中'
         const archive = vm.voices.get(els.namedItem('voice').value)
         const lib = await archive.getVoiceLibrary(48000, {
           onFetchStart(name) {
-            tip.innerText = `开始下载 ${name}`
+            tip.innerText = `开始下载：${name}`
           },
           onFetch(_name, _progress) {
             name = _name; progress = _progress
+            start = now()
             if (timer != null) { return }
-            timer = setInterval(onProgress, 200)
+            timer = setInterval(onProgress, 100)
             onProgress()
           },
           onFetchEnd(name) {
             clearInterval(timer); timer = null
-            tip.innerText = `下载完成 ${name}`
+            tip.innerText = `下载完成：${name}`
           },
           onUnzipStart(name) {
-            tip.innerText = `开始加载 ${name}`
+            tip.innerText = `开始加载：${name}`
           },
           onUnzipEnd(name) {
-            tip.innerText = `加载完成 ${name}`
+            tip.innerText = `加载完成：${name}`
           }
         })
         tip.innerText = (step = submitter.value) + '中'
@@ -137,6 +136,7 @@ export default defineComponent({
         tip.innerText = step + '失败'
         throw err
       } finally {
+        if (timer != null) { clearInterval(timer) }
         submitter.disabled = false
       }
     }

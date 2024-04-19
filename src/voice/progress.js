@@ -1,8 +1,10 @@
 
 import speedometer from 'speedometer'
+import { slice } from '../utils'
 const { MAX_SAFE_INTEGER } = Number, { min } = Math
-let update, final
-class Progress {
+
+export let update, final
+export class Progress {
   static {
     update = (that, chunkLength) => {
       that.#loaded += chunkLength
@@ -33,7 +35,8 @@ class Progress {
     if (this.#isFinalized) { return '100%' }
     if (!this.#lengthComputable) { return 'NaN%' }
     let percent = min(99.9, 100 * this.#loaded / this.#total)
-    return percent.toFixed(1) + '%'
+    if (!(percent >= 0)) { return 'NaN%' }
+    return `${slice(percent, 0, 4)}%`
   }
 }
 class ProgressTransformer {
