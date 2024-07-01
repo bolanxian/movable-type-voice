@@ -1,5 +1,5 @@
 
-import speedometer from 'speedometer'
+import throughput from 'throughput'
 import { slice } from '../utils'
 const { MAX_SAFE_INTEGER } = Number, { min } = Math
 
@@ -12,13 +12,12 @@ export class Progress {
     }
     final = (that) => {
       that.#isFinalized = true
-      that.#speedometer = Number
     }
   }
   #loaded = 0
   #total = 0
   #lengthComputable = false
-  #speedometer = speedometer()
+  #speedometer = throughput()
   #isFinalized = false
   constructor(total) {
     total = +total
