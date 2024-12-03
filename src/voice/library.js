@@ -13,8 +13,10 @@ export class Library {
   injectUnzipEntries(entries) {
     for (const entry of entries) {
       if (entry == null) { continue }
-      const name = String(entry.name), i = name.indexOf('.')
-      this.entryMap.set(name.slice(0, i), entry)
+      let name = String(entry.name), i
+      name = name.slice(name.lastIndexOf('/') + 1)
+      if ((i = name.indexOf('.')) > 0) { name = name.slice(0, i) }
+      this.entryMap.set(name, entry)
     }
   }
   has(name) {
