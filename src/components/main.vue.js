@@ -9,7 +9,7 @@ const name = '活字印刷语音'
 export default defineComponent({
   name,
   props: {
-    voices: { type: Map, require: true }
+    map: { type: Map, require: true }
   },
   data() {
     return {
@@ -33,11 +33,10 @@ export default defineComponent({
       e.preventDefault(); e.stopPropagation()
     },
     handleDrop(e) {
-      const { target } = e
-      if (this.global && !this.$el.contains(target) && e.type !== 'paste') {
-        const tag = target.tagName.toUpperCase()
-        const able = target.getAttribute('contenteditable')
-        if ('INPUT' === tag || 'TEXTAREA' === tag || '' === able || 'true' === able) return
+      {
+        const { target } = e
+        const tag = target.tagName
+        if ('INPUT' === tag || 'TEXTAREA' === tag || target.isContentEditable) return
       }
       e.preventDefault(); e.stopPropagation()
       const dT = e.dataTransfer ?? e.clipboardData
@@ -48,18 +47,19 @@ export default defineComponent({
         if (file.name.endsWith(suffixEx)) { ex = file }
         else if (file.name.endsWith(suffix)) { main = file }
       }
-      const archs = this.voices
+      const archs = this.map
       if (main != null) {
-        const name = main.name.slice(0, -suffix.length)
+        let name = main.name.slice(0, -suffix.length)
         if (ex != null) {
           if (ex.name.slice(0, -suffixEx.length) != name) { return }
           const arch = new ArchiveWithEx([main, ex], name)
           archs.set(arch.main.name, arch.main)
-          archs.set(arch.name, arch)
+          archs.set(name = arch.name, arch)
         } else {
           archs.set(name, new Archive(main, name))
         }
         this.$forceUpdate()
+        setTimeout(() => { this.$refs.form.elements.namedItem('voice').value = name }, 0)
       }
     },
     async testZip(file) {
@@ -103,7 +103,7 @@ export default defineComponent({
       }
       try {
         tip.innerText = (step = '加载') + '中'
-        const archive = vm.voices.get(els.namedItem('voice').value)
+        const archive = vm.map.get(els.namedItem('voice').value)
         const lib = await archive.getVoiceLibrary(48000, {
           onFetchStart(name) {
             tip.innerText = `开始下载：${name}`
@@ -143,14 +143,14 @@ export default defineComponent({
   },
   render() {
     const vm = this
-    return h('form', { class: 'main', action: 'javascript:void+0', onSubmit: vm.handleSubmit }, [
+    return h('form', { ref: 'form', class: 'main', action: 'javascript:void+0', onSubmit: vm.handleSubmit }, [
       h('div', { class: 'title' }, [
         h('h1', null, name)
       ]),
       h('textarea', { name: 'src' }),
       h('div', { style: 'margin:10px 0px;' }, [
         h('input', { type: 'submit', value: '生成', name: 'gen' }),
-        h('span', { style: 'display:inline-block;' }, Array.from(vm.voices.keys(), key => {
+        h('span', { style: 'display:inline-block;' }, Array.from(vm.map.keys(), key => {
           return h('label', null, [
             h('input', { type: 'radio', name: 'voice', value: key }), key
           ])
